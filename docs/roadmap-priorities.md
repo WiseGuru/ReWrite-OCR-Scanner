@@ -20,13 +20,12 @@ Empty is the healthy state. An occupant here is blocking or urgent.
 
 | # | Item | What it needs |
 |---|---|---|
-| TR-1 | Overlapping tab pages on fresh-PDF open | Reproduce under the interactive flow (native file dialog); see next steps in [../ROADMAP.md](../ROADMAP.md#tr-1-tab-pages-paint-on-top-of-each-other-after-opening-a-fresh-pdf) |
 
 ## P1: highest impact-per-effort
 
 | # | Item | What it needs |
 |---|---|---|
-| (release) | Stable 0.1.0 | Blocked on TR-1; then a fresh prerelease tag, the manual test pass in [../RELEASING.md](../RELEASING.md), version bump, bare tag |
+| (release) | Stable 0.1.0 | A fresh prerelease tag, the manual test pass in [../RELEASING.md](../RELEASING.md), version bump, bare tag |
 
 ## P2: scheduled behind P1
 

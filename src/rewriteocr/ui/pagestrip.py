@@ -68,36 +68,75 @@ class PageStrip(QListWidget):
         self.setSpacing(4)
         self.setFixedWidth(150)
         self._loader: _ThumbnailLoader | None = None
+        self._retired: set[_ThumbnailLoader] = set()
         self._base_thumbs: dict[int, QPixmap] = {}
+        self._populating = False
 
-        self.currentRowChanged.connect(
-            lambda row: self.page_selected.emit(row) if row >= 0 else None
-        )
+        self.currentRowChanged.connect(self._on_current_row)
         context.project_opened.connect(self.reload)
         context.project_closed.connect(self._clear_all)
         context.page_updated.connect(self.refresh_page)
+        context.quiesce_requested.connect(self._stop_loader)
+
+    def _on_current_row(self, row: int) -> None:
+        """Only a genuine selection reaches the rest of the app. Clearing and
+        refilling the list moves the current row on its own, and letting that
+        through switched the window to the Review tab mid-project-open."""
+        if self._populating or row < 0 or not self.context.is_open:
+            return
+        self.page_selected.emit(row)
 
     def _clear_all(self) -> None:
         self._stop_loader()
         self._base_thumbs.clear()
-        self.clear()
+        was_populating, self._populating = self._populating, True
+        try:
+            self.clear()
+        finally:
+            self._populating = was_populating
 
     def _stop_loader(self) -> None:
-        if self._loader is not None:
-            self._loader.requestInterruption()
-            self._loader.wait(5000)
-            self._loader = None
+        """Retire the running loader without blocking the GUI thread: waiting
+        here stalls the very handler that is about to switch tabs, and the
+        loader can be mid-render on the global pdfium lock."""
+        loader, self._loader = self._loader, None
+        if loader is None:
+            return
+        loader.thumb_ready.disconnect(self._on_thumb)
+        loader.requestInterruption()
+        self._retired.add(loader)
+        loader.finished.connect(lambda ldr=loader: self._retired.discard(ldr))
+        loader.finished.connect(loader.deleteLater)
+
+    def shutdown(self) -> None:
+        """Wait out every loader before the window goes away, so no QThread is
+        destroyed while it is still running."""
+        self._stop_loader()
+        for loader in list(self._retired):
+            loader.wait(5000)
+        self._retired.clear()
 
     def reload(self) -> None:
         self._clear_all()
         if not self.context.is_open:
             return
-        pages = self.context.db.get_pages()
-        for page in pages:
-            item = QListWidgetItem(f"p. {page.page_index + 1}")
-            item.setTextAlignment(Qt.AlignHCenter)
-            self.addItem(item)
-            self._decorate(item, page, self.context.db.flags_for_page(page.page_index))
+        self._populating = True
+        try:
+            pages = self.context.db.get_pages()
+            for page in pages:
+                item = QListWidgetItem(f"p. {page.page_index + 1}")
+                item.setTextAlignment(Qt.AlignHCenter)
+                self.addItem(item)
+                self._decorate(
+                    item, page, self.context.db.flags_for_page(page.page_index)
+                )
+            # Leave a valid current row behind. A list with none of its own
+            # makes Qt pick row 0 the moment the widget takes focus, which
+            # would read as a user selection and pull the window to Review.
+            if pages:
+                self.setCurrentRow(0)
+        finally:
+            self._populating = False
         self._loader = _ThumbnailLoader(self.context, len(pages))
         self._loader.thumb_ready.connect(self._on_thumb)
         self._loader.start()

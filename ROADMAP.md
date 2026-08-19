@@ -63,12 +63,12 @@ Every Request link points into [docs/closed/](docs/closed/).
 
 | # | Report | Reported | State |
 |---|--------|----------|-------|
-| TR-1 | Tab pages intermittently paint on top of each other ("crushed/jumbled text") after opening a fresh PDF | 2026-08-19 | Investigating; real widget-visibility fault isolated, trigger not yet reproduced under scripting |
 
 ## Triage requests, closed: diagnosed
 
 | # | Report | Reported | Outcome | Closed | Version |
 |---|--------|----------|---------|--------|---------|
+| TR-1 | [Tab pages intermittently paint on top of each other ("crushed/jumbled text") after opening a fresh PDF](docs/closed/tr-1.md) | 2026-08-19 | Fixed: four contributing defects on the import path removed and a single-visible-page invariant enforced and logged. Trigger never reproduced; closed on a traced interactive confirmation pass | 2026-08-19 | 0.1.0 |
 
 ## Security findings, open: exposed or unmitigated
 
@@ -79,49 +79,3 @@ Every Request link points into [docs/closed/](docs/closed/).
 
 | # | Finding | Severity | Found | Outcome | Closed | Version |
 |---|---------|----------|-------|---------|--------|---------|
-
-## TR-1: tab pages paint on top of each other after opening a fresh PDF
-
-**Symptom**: after opening a not-previously-opened PDF through the Import
-button, the text of two tab pages renders superimposed (for example the
-Review header over the Extract header: "Show:" and "Engine:" merged). It
-self-heals after switching tabs a few times. Resuming a previously-opened
-PDF does not show it. Observed on Windows 11, PySide6 6.11.2.
-
-**Established facts** (2026-08-19):
-
-- Widget-state dumps during a live reproduction show two `QStackedWidget`
-  pages with `isVisible() == True` simultaneously (for example
-  current=Review while ExtractTab is also visible). It is genuine widget
-  visibility, not stale backing-store pixels: a `window.grab()` widget-tree
-  render shows the same overlap.
-- Show/hide tracing across a reproduction shows tab switches delivering
-  `showEvent` to the incoming page with **no `hideEvent` to the outgoing
-  page**; only ImportTab ever received a hide.
-- A minimal pure-Qt QTabWidget (same PySide6 6.11.2 environment), including
-  the app's tab enable/disable dance, behaves correctly.
-- Scripted bisects neutralizing the Rules-tab showEvent override, the
-  thumbnail loader, and the Review-tab shortcuts all came back clean, but
-  so did the unmodified app under the same scripted flow: the scripted
-  reproduction lost the trigger. The failing flow appears to need the
-  interactive path: a previous project open with Review current, then
-  File > Open through the native QFileDialog.
-- No Python exceptions in logs during reproductions.
-
-**Hardened while investigating** (real defects fixed on the way, none of
-which closed the symptom): thumbnail QPixmaps were created on a worker
-thread (undefined behavior; now QImage handoff), the thumbnail loader
-starved the GUI thread on the global PDFium lock (now yields between
-pages), and synchronous page renders on the GUI thread blocked tabs' first
-layout pass (all page renders now run on an async render worker).
-
-**Next steps**:
-
-1. Reproduce under the exact interactive flow, native file dialog
-   included: the native dialog runs its own event loop and is the main
-   untested difference from the scripted flow.
-2. Instrument `currentChanged` plus per-page visibility after each switch
-   in that flow to catch the first unhidden page and what preceded it.
-3. If the native dialog correlates, test `QFileDialog.DontUseNativeDialog`
-   as diagnostic and candidate workaround.
-4. Pin PySide6 6.8 LTS and retry to rule a 6.11 regression in or out.

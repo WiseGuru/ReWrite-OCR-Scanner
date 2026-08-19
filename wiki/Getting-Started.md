@@ -4,7 +4,8 @@ The main window is a five-step tab bar: Import, Rules, Extract, Review,
 Export. You can move freely between tabs once a document is open; the left
 strip always shows every page with badges for its type (T = text layer,
 S = scanned, M = mixed), a colored dot for flag severity, and a check when
-you mark it reviewed.
+you mark it reviewed. Opening a document highlights page 1 there; clicking
+any page opens it in Review.
 
 ## 1. Import
 

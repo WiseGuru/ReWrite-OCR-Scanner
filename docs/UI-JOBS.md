@@ -40,6 +40,39 @@ pdfium is not thread-safe even across documents: every call anywhere goes
 through the module-global lock in `core/pdf_io.py`, which is what makes
 the GUI-thread renders and worker-thread extraction coexist.
 
+## Tab and page-strip invariants
+
+Three rules keep the tab stack honest. They exist because of TR-1, where
+two stack pages painted at once after an import (see
+[closed/tr-1.md](closed/tr-1.md)).
+
+- **Every tab change goes through `MainWindow._go_to_tab`.** It sets the
+  index, activates the incoming page's layout (a tab shown for the first
+  time while the GUI thread is busy can otherwise miss its first layout
+  pass and paint every child stacked at the top left), then runs
+  `_enforce_single_page`.
+- **`_enforce_single_page` is the standing invariant**: exactly one page is
+  visible and it is the current one. It runs on every `currentChanged` and
+  again on the next turn of the event loop, corrects any stray, and logs a
+  warning naming the strays and the recent tab transitions.
+  `REWRITEOCR_DEBUG_TABS=1` adds a per-transition trace with call stacks.
+- **The page strip emits `page_selected` only for a genuine user
+  selection.** Clearing and refilling the list moves the current row on its
+  own, and `MainWindow._on_strip_selected` switches to the Review tab, so
+  an unfiltered `currentRowChanged` could change tabs in the middle of a
+  project open. `PageStrip` suppresses the signal while `_populating` and
+  when no project is open, and always leaves a valid current row behind,
+  because a list with none of its own makes Qt select row 0 as soon as the
+  widget takes focus.
+
+Two related rules on blocking: `PageStrip` retires a superseded thumbnail
+loader without waiting on it (`_stop_loader` disconnects, interrupts and
+defers deletion; `shutdown()` at window close is the only place that
+waits), and `ImportTab.open_path` calls
+`ProjectContext.quiesce_background_work()` before its synchronous
+encryption probe, so the GUI thread never queues behind a background render
+pass on the pdfium lock while the tabs are being swapped.
+
 ## Review tab behaviors worth knowing
 
 - Filter defaults to flagged-only when flags exist; flagged navigation is

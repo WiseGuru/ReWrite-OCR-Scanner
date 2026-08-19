@@ -79,6 +79,11 @@ class ImportTab(QWidget):
     def open_path(self, path: Path) -> None:
         """Open a PDF, prompting for a password when needed."""
         password: str | None = None
+        # The probe below opens the document on the GUI thread and so takes
+        # the global pdfium lock. Stand the thumbnail loader down first, or
+        # the GUI thread queues behind a render pass of the outgoing document
+        # while the tabs are being swapped.
+        self.context.quiesce_background_work()
         # Probe for encryption interactively before handing off to the worker.
         while True:
             try:

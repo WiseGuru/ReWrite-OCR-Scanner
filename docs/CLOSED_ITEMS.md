@@ -38,6 +38,7 @@ Number order within each kind, matching the register.
 
 | # | Section |
 |---|---------|
+| TR-1 | [closed/tr-1.md](closed/tr-1.md) |
 
 ### Security findings
 

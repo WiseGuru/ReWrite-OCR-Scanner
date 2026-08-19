@@ -72,6 +72,9 @@ class ProjectContext(QObject):
     status_message = Signal(str)
     # A previously requested page render is now in the cache.
     page_render_ready = Signal(int, float)  # index, dpi
+    # Background pdfium work should stand down: the GUI thread is about to
+    # take the global lock itself and must not queue behind a render pass.
+    quiesce_requested = Signal()
     _render_request = Signal(object, int, float, bool, int, float)
 
     def __init__(self, parent: QObject | None = None) -> None:
@@ -124,7 +127,17 @@ class ProjectContext(QObject):
         self._render_cache.clear()
         self.project_opened.emit()
 
+    def quiesce_background_work(self) -> None:
+        """Ask background pdfium users (the thumbnail loader) to stop before
+        the GUI thread blocks on the same lock."""
+        self.quiesce_requested.emit()
+
     def close_project(self) -> None:
+        if self.db is None and self.doc is None:
+            # Nothing open: staying silent keeps project_closed to one
+            # emission per open, since both ImportTab and attach_project call
+            # this on the way in.
+            return
         if self.db is not None:
             self.db.close()
         if self.doc is not None:
