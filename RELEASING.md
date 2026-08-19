@@ -21,6 +21,12 @@ builds and attests all assets; never hand-upload an asset.
   README requirements).
 - CI runs the license gate and the test suite before building; a red gate
   blocks the release.
+- **Attestation requires a public repository** (GitHub does not offer it
+  on user-owned private repos). While the repo is private, the workflow
+  skips the attest step and publishes unattested; once public, every
+  release is attested automatically and the verify step below applies.
+- The Linux AppImage is assembled with the official `appimagetool`
+  "continuous" build (upstream publishes no pinned releases).
 
 ## Procedure
 
@@ -61,8 +67,8 @@ builds and attests all assets; never hand-upload an asset.
    gh attestation verify %TEMP%\rel\ReWrite-OCR-Scanner-Setup-0.2.0.exe --repo WiseGuru/ReWrite-OCR-Scanner
    ```
 
-   The release page must show the bare tag with all four assets and the
-   attestation check must exit 0.
+   The release page must show the bare tag with all four assets; on a
+   public repo the attestation check must also exit 0.
 
 ## Local build (for development only, never for publishing)
 

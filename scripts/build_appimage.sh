@@ -11,8 +11,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
 APPDIR="$DIST/AppDir"
 TOOL="$DIST/appimagetool-x86_64.AppImage"
-# Pinned appimagetool release (AppImageKit 13).
-TOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
+# Official appimagetool distribution. The project only publishes a moving
+# "continuous" tag (the old AppImageKit/13 assets were removed upstream).
+TOOL_URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
 
 [ -d "$DIST/rewrite-ocr" ] || { echo "dist/rewrite-ocr missing; run pyinstaller first" >&2; exit 1; }
 

@@ -134,7 +134,11 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
+      # GitHub does not offer attestation on user-owned private repositories;
+      # skip there so the release still publishes (unattested) and attest
+      # automatically once the repo is public.
       - name: Attest build provenance
+        if: ${{ !github.event.repository.private }}
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: ${{ steps.assets.outputs.files }}
