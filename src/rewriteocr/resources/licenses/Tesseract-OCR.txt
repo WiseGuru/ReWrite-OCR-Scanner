@@ -1,3 +1,3 @@
-Tesseract OCR (optional, detected on the system)
+Tesseract OCR (optional, detected on the system; not distributed with this application)
 License: Apache-2.0
 https://github.com/tesseract-ocr/tesseract/blob/main/LICENSE

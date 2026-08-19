@@ -1,6 +1,8 @@
 pillow 12.3.0
 License: MIT-CMU
 
+--- LICENSE ---
+
 The Python Imaging Library (PIL) is
 
     Copyright © 1997-2011 by Secret Labs AB

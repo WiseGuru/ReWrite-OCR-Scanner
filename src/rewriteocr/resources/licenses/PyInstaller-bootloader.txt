@@ -1,0 +1,3 @@
+PyInstaller bootloader (embedded in the packaged executable)
+License: GPL-2.0-or-later with the PyInstaller Bootloader Exception, which explicitly permits distributing bundled applications under their own terms.
+https://pyinstaller.org/en/stable/license.html

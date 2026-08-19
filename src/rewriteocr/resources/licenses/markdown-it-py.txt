@@ -1,6 +1,8 @@
 markdown-it-py 4.2.0
 License: see text
 
+--- LICENSE ---
+
 MIT License
 
 Copyright (c) 2020 ExecutableBookProject
@@ -25,6 +27,8 @@ SOFTWARE.
 
 
 ======================================================================
+
+--- LICENSE.markdown-it ---
 
 Copyright (c) 2014 Vitaly Puzrin, Alex Kocharin.
 

@@ -1,6 +1,8 @@
 numpy 2.5.2
 License: BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0
 
+--- LICENSE.txt ---
+
 Copyright (c) 2005-2025, NumPy Developers.
 All rights reserved.
 
@@ -919,6 +921,8 @@ Public License instead of this License.  But first, please read
 
 ======================================================================
 
+--- numpy/_core/include/numpy/libdivide/LICENSE.txt ---
+
   zlib License
   ------------
 
@@ -944,6 +948,8 @@ Public License instead of this License.  But first, please read
 
 ======================================================================
 
+--- numpy/_core/src/common/pythoncapi-compat/COPYING ---
+
 BSD Zero Clause License
 
 Copyright Contributors to the pythoncapi_compat project.
@@ -961,6 +967,8 @@ PERFORMANCE OF THIS SOFTWARE.
 
 
 ======================================================================
+
+--- numpy/_core/src/highway/LICENSE ---
 
 This project is primarily dual-licensed under your choice of either the Apache
 License 2.0 or the BSD 3-Clause License.
@@ -1336,6 +1344,8 @@ express Statement of Purpose.
 
 ======================================================================
 
+--- numpy/_core/src/multiarray/dragon4_LICENSE.txt ---
+
 Copyright (c) 2014 Ryan Juckett
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1366,6 +1376,8 @@ permission to include it under the MIT license instead.
 
 
 ======================================================================
+
+--- numpy/_core/src/npysort/x86-simd-sort/LICENSE.md ---
 
 BSD 3-Clause License
 
@@ -1398,6 +1410,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ======================================================================
+
+--- numpy/_core/src/umath/svml/LICENSE ---
 
 Copyright (c) 2005-2021, NumPy Developers.
 All rights reserved.
@@ -1433,6 +1447,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ======================================================================
 
+--- numpy/fft/pocketfft/LICENSE.md ---
+
 Copyright (C) 2010-2018 Max-Planck-Society
 All rights reserved.
 
@@ -1461,6 +1477,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ======================================================================
+
+--- numpy/linalg/lapack_lite/LICENSE.txt ---
 
 Copyright (c) 1992-2013 The University of Tennessee and The University
                         of Tennessee Research Foundation.  All rights
@@ -1514,6 +1532,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ======================================================================
 
+--- numpy/ma/LICENSE ---
+
 * Copyright (c) 2006, University of Georgia and Pierre G.F. Gerard-Marchant
 * All rights reserved.
 * Redistribution and use in source and binary forms, with or without
@@ -1540,6 +1560,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ======================================================================
+
+--- numpy/random/LICENSE.md ---
 
 **This software is dual-licensed under the The University of Illinois/NCSA
 Open Source License (NCSA) and The 3-Clause BSD License**
@@ -1616,6 +1638,8 @@ the component code.
 
 ======================================================================
 
+--- numpy/random/src/distributions/LICENSE.md ---
+
 ## NumPy
 
 Copyright (c) 2005-2017, NumPy Developers.
@@ -1679,6 +1703,8 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ======================================================================
+
+--- numpy/random/src/mt19937/LICENSE.md ---
 
 # MT19937
 
@@ -1744,6 +1770,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ======================================================================
 
+--- numpy/random/src/pcg64/LICENSE.md ---
+
 # PCG64
 
 ## The MIT License
@@ -1769,6 +1797,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 ======================================================================
+
+--- numpy/random/src/philox/LICENSE.md ---
 
 # PHILOX
 
@@ -1805,6 +1835,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ======================================================================
 
+--- numpy/random/src/sfc64/LICENSE.md ---
+
 # SFC64
 
 ## The MIT License
@@ -1836,6 +1868,8 @@ DEALINGS IN THE SOFTWARE.
 
 ======================================================================
 
+--- numpy/random/src/splitmix64/LICENSE.md ---
+
 # SPLITMIX64
 
 Written in 2015 by Sebastiano Vigna (vigna@acm.org)
@@ -1847,6 +1881,8 @@ worldwide. This software is distributed without any warranty.
 See <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 ======================================================================
+
+--- LICENSE.txt ---
 
   zlib License
   ------------
@@ -1872,6 +1908,8 @@ See <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 
 ======================================================================
+
+--- LICENSE ---
 
 * Copyright (c) 2006, University of Georgia and Pierre G.F. Gerard-Marchant
 * All rights reserved.
@@ -1899,6 +1937,8 @@ See <http://creativecommons.org/publicdomain/zero/1.0/>.
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ======================================================================
+
+--- LICENSE.md ---
 
 **This software is dual-licensed under the The University of Illinois/NCSA
 Open Source License (NCSA) and The 3-Clause BSD License**

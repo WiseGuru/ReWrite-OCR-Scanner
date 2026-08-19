@@ -1,6 +1,8 @@
 typing_extensions 4.16.0
 License: PSF-2.0
 
+--- LICENSE ---
+
 A. HISTORY OF THE SOFTWARE
 ==========================
 

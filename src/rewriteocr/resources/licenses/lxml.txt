@@ -1,6 +1,8 @@
 lxml 6.1.1
 License: BSD-3-Clause
 
+--- LICENSE.txt ---
+
 BSD 3-Clause License
 
 Copyright (c) 2004 Infrae. All rights reserved.
@@ -35,6 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ======================================================================
+
+--- LICENSES.txt ---
 
 lxml is copyright Infrae and distributed under the BSD license (see
 doc/licenses/BSD.txt), with the following exceptions:

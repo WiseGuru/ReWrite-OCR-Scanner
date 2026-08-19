@@ -1,6 +1,8 @@
 python-docx 1.2.0
 License: MIT
 
+--- LICENSE ---
+
 The MIT License (MIT)
 Copyright (c) 2013 Steve Canny, https://github.com/scanny
 
