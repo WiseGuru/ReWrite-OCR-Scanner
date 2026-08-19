@@ -10,8 +10,7 @@ from __future__ import annotations
 import time
 
 import pytest
-
-from tests.conftest import make_born_digital_pdf
+from conftest import make_born_digital_pdf
 
 QtWidgets = pytest.importorskip("PySide6.QtWidgets")
 
