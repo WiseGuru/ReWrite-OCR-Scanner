@@ -36,7 +36,8 @@ def draw_icon(size: int) -> Image.Image:
 
 
 def main() -> int:
-    out_dir = Path(__file__).resolve().parents[1] / "packaging"
+    repo = Path(__file__).resolve().parents[1]
+    out_dir = repo / "packaging"
     out_dir.mkdir(exist_ok=True)
     base = draw_icon(256)
     base.save(out_dir / "icon.png")
@@ -44,7 +45,10 @@ def main() -> int:
         out_dir / "icon.ico",
         sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
     )
-    print(f"wrote {out_dir / 'icon.png'} and {out_dir / 'icon.ico'}")
+    # Runtime copy: the window icon is set from package resources at startup.
+    runtime = repo / "src/rewriteocr/resources/icon.png"
+    base.save(runtime)
+    print(f"wrote {out_dir / 'icon.png'}, {out_dir / 'icon.ico'}, and {runtime}")
     return 0
 
 

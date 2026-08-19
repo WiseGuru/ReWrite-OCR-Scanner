@@ -45,6 +45,11 @@ class _ThumbnailLoader(QThread):
             except Exception:
                 continue
             self.thumb_ready.emit(i, pil_to_qpixmap(img))
+            # Yield between pages: rendering back-to-back re-acquires the
+            # global PDFium lock in a tight loop and starves the GUI thread
+            # (which needs the same lock and the event queue), freezing the
+            # window mid-layout for the whole thumbnail pass.
+            self.msleep(20)
 
 
 class PageStrip(QListWidget):

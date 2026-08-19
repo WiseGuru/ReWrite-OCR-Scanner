@@ -13,6 +13,19 @@ from rewriteocr.logging_setup import setup_logging
 log = logging.getLogger("rewriteocr.app")
 
 
+def _set_window_icon(app: QApplication) -> None:
+    from importlib import resources
+
+    from PySide6.QtGui import QIcon
+
+    try:
+        icon_res = resources.files("rewriteocr.resources").joinpath("icon.png")
+        with resources.as_file(icon_res) as path:
+            app.setWindowIcon(QIcon(str(path)))
+    except (OSError, FileNotFoundError):
+        log.warning("Window icon resource missing; using the platform default.")
+
+
 def _install_excepthook() -> None:
     def hook(exc_type, exc, tb) -> None:
         detail = "".join(traceback.format_exception(exc_type, exc, tb))
@@ -35,9 +48,18 @@ def main() -> int:
     from rewriteocr.config import clean_stale_temp
 
     clean_stale_temp()
+    if sys.platform == "win32":
+        # Give the process its own taskbar identity; otherwise Windows
+        # groups the window under the Python interpreter's icon.
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "ReWriteOCR.Scanner"
+        )
     app = QApplication(sys.argv)
     app.setApplicationName("ReWrite OCR Scanner")
     app.setOrganizationName("ReWriteOCR")
+    _set_window_icon(app)
     _install_excepthook()
 
     from rewriteocr.ui.main_window import MainWindow
