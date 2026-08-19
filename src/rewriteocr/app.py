@@ -67,6 +67,14 @@ def main() -> int:
     window = MainWindow()
     app.aboutToQuit.connect(window.context.shutdown)
     window.show()
+    # Optional: a PDF path on the command line opens immediately.
+    for arg in sys.argv[1:]:
+        if arg.lower().endswith(".pdf"):
+            from pathlib import Path
+
+            if Path(arg).is_file():
+                window.import_tab.open_path(Path(arg))
+            break
     return app.exec()
 
 

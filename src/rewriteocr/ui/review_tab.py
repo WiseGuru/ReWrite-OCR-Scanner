@@ -101,6 +101,14 @@ class ReviewTab(QWidget):
         context.project_opened.connect(self._on_project_opened)
         context.project_closed.connect(self._on_project_closed)
         context.page_updated.connect(self._on_page_updated)
+        context.page_render_ready.connect(self._on_render_ready)
+
+    def _on_render_ready(self, index: int, dpi: float) -> None:
+        if index == self._current_page and dpi == self.REVIEW_DPI:
+            pixmap = self.context.request_page_render(index, dpi=self.REVIEW_DPI)
+            if pixmap is not None:
+                self.image_label.setText("")
+                self.image_label.setPixmap(pixmap)
 
     # -- navigation ----------------------------------------------------------
 
@@ -163,13 +171,17 @@ class ReviewTab(QWidget):
             self._pos = self._nav.index(index)
         self._show_page(index)
 
+    REVIEW_DPI = 110.0
+
     def _show_page(self, index: int) -> None:
         self._current_page = index
         page = self.context.db.get_page(index)
-        pixmap = self.context.render_page(index, dpi=110.0)
+        pixmap = self.context.request_page_render(index, dpi=self.REVIEW_DPI)
         if pixmap is not None:
             self.image_label.setPixmap(pixmap)
-            self.image_label.adjustSize()
+        else:
+            self.image_label.clear()
+            self.image_label.setText("Rendering page...")
         self._loading = True
         self.editor.setPlainText(page.effective_text or "")
         self.editor.setReadOnly(self.context.read_only or page.extracted_text is None)

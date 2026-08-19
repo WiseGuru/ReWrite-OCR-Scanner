@@ -1,0 +1,16 @@
+{
+  "//": "Shape declaration for the roadmap-register drift checker (check-registers.mjs). The register lives at the repo root; queue and archive live under docs/.",
+  "tables": [
+    { "doc": "ROADMAP.md", "heading": "Feature requests, open", "kinds": ["FR"], "state": "State" },
+    { "doc": "ROADMAP.md", "heading": "Feature requests, closed", "kinds": ["FR"], "required": ["Closed", "Version"] },
+    { "doc": "ROADMAP.md", "heading": "Triage requests, open", "kinds": ["TR"], "state": "State" },
+    { "doc": "ROADMAP.md", "heading": "Triage requests, closed", "kinds": ["TR"], "required": ["Closed", "Version"] },
+    { "doc": "ROADMAP.md", "heading": "Security findings, open", "kinds": ["S"], "state": "State" },
+    { "doc": "ROADMAP.md", "heading": "Security findings, closed", "kinds": ["S"], "required": ["Closed", "Version"] }
+  ],
+  "sectionDocs": ["ROADMAP.md"],
+  "closedDir": "docs/closed",
+  "router": "docs/CLOSED_ITEMS.md",
+  "priorities": "docs/roadmap-priorities.md",
+  "kinds": ["FR", "TR", "S"]
+}

@@ -48,6 +48,11 @@ overview; user documentation lives in [wiki/](wiki/).
   behaviors, annotation canvas. See [docs/UI-JOBS.md](docs/UI-JOBS.md).
 - **Releases**: prerelease-first tag-driven flow, asset names, version
   owner (`src/rewriteocr/__init__.py`). See [RELEASING.md](RELEASING.md).
+- **Work registers**: feature/triage/security items (FR-n, TR-n, S-n) are
+  filed in [ROADMAP.md](ROADMAP.md); read
+  [docs/roadmap-priorities.md](docs/roadmap-priorities.md) when asking
+  "what's next". Closed detail archives to docs/closed/ via
+  [docs/CLOSED_ITEMS.md](docs/CLOSED_ITEMS.md).
 
 ## Documentation maintenance
 

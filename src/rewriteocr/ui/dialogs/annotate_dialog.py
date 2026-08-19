@@ -93,8 +93,8 @@ class AnnotateDialog(QDialog):
         buttons.addWidget(reextract_btn)
         layout.addLayout(buttons)
 
+        self.controller.page_displayed.connect(lambda _i: self.view.fit_page())
         self.controller.set_page(page_index)
-        self.view.fit_page()
 
     def _pick_kind(self, kind: str, checked: bool) -> None:
         for k, btn in self._buttons.items():

@@ -74,6 +74,10 @@ class ImportTab(QWidget):
             return
         path = Path(path_str)
         self.context.settings.set("last_dir", str(path.parent))
+        self.open_path(path)
+
+    def open_path(self, path: Path) -> None:
+        """Open a PDF, prompting for a password when needed."""
         password: str | None = None
         # Probe for encryption interactively before handing off to the worker.
         while True:

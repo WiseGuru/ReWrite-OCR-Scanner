@@ -44,10 +44,12 @@ class PreviewDialog(QDialog):
             controller = RegionController(context, mode="global")
             view = AnnotationView(controller.scene)
             view.setInteractive(False)
+            controller.page_displayed.connect(lambda _i, v=view: v.fit_page())
             controller.set_page(index)
             column.addWidget(view, 1)
             layout.addLayout(column)
-            view.fit_page()
+            # Keep the controller alive alongside its view.
+            view._preview_controller = controller
 
 
 class RulesTab(QWidget):
@@ -126,6 +128,7 @@ class RulesTab(QWidget):
 
         self.view = AnnotationView(self.controller.scene)
         layout.addWidget(self.view, 1)
+        self.controller.page_displayed.connect(lambda _i: self.view.fit_page())
 
         # Canvas renders are deferred until this tab is actually visible:
         # rendering during project open blocks the GUI thread on the global
@@ -167,7 +170,6 @@ class RulesTab(QWidget):
     def _show_or_defer(self, page_index: int) -> None:
         if self.isVisible():
             self.controller.set_page(page_index)
-            self.view.fit_page()
             self._pending_page = None
         else:
             self._pending_page = page_index
@@ -177,7 +179,6 @@ class RulesTab(QWidget):
         if self._pending_page is not None and self.context.is_open:
             pending, self._pending_page = self._pending_page, None
             self.controller.set_page(pending)
-            self.view.fit_page()
 
     def _refresh_note(self) -> None:
         count = len(self.context.db.list_regions()) if self.context.is_open else 0

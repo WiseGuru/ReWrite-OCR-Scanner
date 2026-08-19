@@ -61,6 +61,7 @@ class PdfDocument:
     def __init__(self, path: str | Path, password: str | None = None) -> None:
         self.path = Path(path)
         self._lock = _PDFIUM_LOCK
+        self._closed = False
         with self._lock:
             try:
                 self._doc = pdfium.PdfDocument(str(self.path), password=password)
@@ -72,7 +73,13 @@ class PdfDocument:
 
     def close(self) -> None:
         with self._lock:
-            self._doc.close()
+            if not self._closed:
+                self._closed = True
+                self._doc.close()
+
+    def _check_open(self) -> None:
+        if self._closed:
+            raise PdfError("Document is closed.")
 
     def __enter__(self) -> PdfDocument:
         return self
@@ -82,6 +89,7 @@ class PdfDocument:
 
     def page_size_pt(self, index: int) -> tuple[float, float]:
         with self._lock:
+            self._check_open()
             page = self._doc[index]
             try:
                 return page.get_size()
@@ -90,6 +98,7 @@ class PdfDocument:
 
     def page_text(self, index: int) -> str:
         with self._lock:
+            self._check_open()
             page = self._doc[index]
             try:
                 textpage = page.get_textpage()
@@ -110,6 +119,7 @@ class PdfDocument:
         """Every character with its normalized box, for exclusion filtering
         and text-coverage measurement."""
         with self._lock:
+            self._check_open()
             page = self._doc[index]
             try:
                 w, h = page.get_size()
@@ -143,6 +153,7 @@ class PdfDocument:
     def page_image_boxes(self, index: int) -> list[tuple[float, float, float, float]]:
         """Normalized boxes of embedded image objects, for mixed-page triage."""
         with self._lock:
+            self._check_open()
             page = self._doc[index]
             try:
                 w, h = page.get_size()
@@ -166,6 +177,7 @@ class PdfDocument:
     ) -> Image.Image:
         """Render at the given DPI. rotation is the user override (0/90/180/270)."""
         with self._lock:
+            self._check_open()
             page = self._doc[index]
             try:
                 bitmap = page.render(

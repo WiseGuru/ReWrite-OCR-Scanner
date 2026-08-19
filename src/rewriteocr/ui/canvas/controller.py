@@ -5,6 +5,7 @@ and persists every committed change to the sidecar."""
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Callable
 
 from PySide6.QtCore import QObject, QRectF, Signal
@@ -30,6 +31,7 @@ class RegionController(QObject):
 
     regions_edited = Signal()
     selection_changed = Signal(object)  # Region | None
+    page_displayed = Signal(int)  # the canvas now shows this page's render
 
     def __init__(
         self,
@@ -49,17 +51,33 @@ class RegionController(QObject):
         self._items: dict[int, RegionItem] = {}  # region id -> item
         self._line_boxes: list[LineBox] | None = None
         self.scene.selectionChanged.connect(self._on_selection)
+        context.page_render_ready.connect(self._on_render_ready)
 
     # -- page handling -------------------------------------------------------
 
+    CANVAS_DPI = 120.0
+
     def set_page(self, page_index: int) -> None:
+        """Asynchronous: the pixmap appears when the background render
+        lands and page_displayed fires. Rendering here on the GUI thread
+        blocked a tab's first layout pass and painted it scrambled."""
         self.page_index = page_index
         self._line_boxes = None
-        pixmap = self.context.render_page(page_index, dpi=120.0)
-        if pixmap is None:
-            return
+        pixmap = self.context.request_page_render(page_index, dpi=self.CANVAS_DPI)
+        if pixmap is not None:
+            self._apply_pixmap(pixmap)
+
+    def _on_render_ready(self, index: int, dpi: float) -> None:
+        if index == self.page_index and dpi == self.CANVAS_DPI:
+            pixmap = self.context.request_page_render(index, dpi=self.CANVAS_DPI)
+            if pixmap is not None:
+                self._apply_pixmap(pixmap)
+
+    def _apply_pixmap(self, pixmap) -> None:
         self.scene.set_page_pixmap(pixmap)
         self.reload_regions()
+        self._start_line_box_prefetch()
+        self.page_displayed.emit(self.page_index)
 
     def reload_regions(self) -> None:
         for item in self._items.values():
@@ -196,30 +214,41 @@ class RegionController(QObject):
                 item.set_order_label(f"{n} {region.kind}")
 
     def _snap(self, x0, y0, x1, y1, kind) -> tuple[float, float, float, float]:
-        boxes = self._get_line_boxes()
+        boxes = self._line_boxes
         if not boxes:
+            # Prefetch has not finished (or Tesseract is absent): create the
+            # region unsnapped rather than stalling the GUI on a subprocess.
             return x0, y0, x1, y1
         return snap_outward(x0, y0, x1, y1, boxes, snap_x=(kind != "column"))
 
-    def _get_line_boxes(self) -> list[LineBox]:
-        if self._line_boxes is not None:
-            return self._line_boxes
+    def _start_line_box_prefetch(self) -> None:
+        """Compute Tesseract line boxes in the background so region drawing
+        can snap without ever blocking the GUI thread. Page data is captured
+        here because the worker must not touch the GUI thread's SidecarDB."""
+        if not self.snap_enabled or self.page_index is None or not self.context.is_open:
+            return
         exe = self.context.env.tesseract_path or find_tesseract()
-        if exe is None or self.page_index is None or not self.context.is_open:
-            self._line_boxes = []
-            return self._line_boxes
-        try:
-            page = self.context.db.get_page(self.page_index)
-            img = self.context.doc.render_page(self.page_index, 150, page.rotation)
-            if page.deskew_angle:
-                from rewriteocr.core.preprocess import apply_deskew
+        if exe is None:
+            return
+        page = self.context.db.get_page(self.page_index)
+        doc = self.context.doc
+        page_index = self.page_index
 
-                img = apply_deskew(img, page.deskew_angle)
-            self._line_boxes = TesseractEngine(exe).line_boxes(img)
-        except Exception as exc:
-            log.warning("Line-box detection failed: %s", exc)
-            self._line_boxes = []
-        return self._line_boxes
+        def work() -> None:
+            try:
+                img = doc.render_page(page_index, 150, page.rotation)
+                if page.deskew_angle:
+                    from rewriteocr.core.preprocess import apply_deskew
+
+                    img = apply_deskew(img, page.deskew_angle)
+                boxes = TesseractEngine(exe).line_boxes(img)
+            except Exception as exc:
+                log.warning("Line-box detection failed: %s", exc)
+                return
+            if self.page_index == page_index:
+                self._line_boxes = boxes
+
+        threading.Thread(target=work, name="line-box-prefetch", daemon=True).start()
 
     def _on_selection(self) -> None:
         self.selection_changed.emit(self.selected_region())

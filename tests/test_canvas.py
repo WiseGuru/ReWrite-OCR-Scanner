@@ -1,4 +1,4 @@
-"""Annotation canvas controller tests (offscreen Qt via pytest-qt)."""
+﻿"""Annotation canvas controller tests (offscreen Qt via pytest-qt)."""
 
 from __future__ import annotations
 
@@ -26,15 +26,17 @@ def context(qtbot, born_digital_pdf, tmp_path):
     ctx.shutdown()
 
 
-def _controller(context, mode="page"):
+def _controller(context, qtbot, mode="page"):
     c = RegionController(context, mode=mode)
     c.snap_enabled = False  # geometry-only tests
-    c.set_page(0)
+    # set_page is asynchronous: the pixmap lands via the render worker.
+    with qtbot.waitSignal(c.page_displayed, timeout=10_000):
+        c.set_page(0)
     return c
 
 
-def test_create_region_persists_normalized_coords(context):
-    controller = _controller(context)
+def test_create_region_persists_normalized_coords(context, qtbot):
+    controller = _controller(context, qtbot)
     bounds = controller.page_bounds()
     rect = QRectF(bounds.width() * 0.1, bounds.height() * 0.2,
                   bounds.width() * 0.5, bounds.height() * 0.3)
@@ -50,8 +52,8 @@ def test_create_region_persists_normalized_coords(context):
     assert r.y1 == pytest.approx(0.5, abs=0.01)
 
 
-def test_items_loaded_and_reorder(context):
-    controller = _controller(context)
+def test_items_loaded_and_reorder(context, qtbot):
+    controller = _controller(context, qtbot)
     bounds = controller.page_bounds()
     for i in range(2):
         controller.create_region_from_rect(
@@ -68,8 +70,8 @@ def test_items_loaded_and_reorder(context):
     assert regions_after[regions[1].id] == 0
 
 
-def test_delete_selected(context):
-    controller = _controller(context)
+def test_delete_selected(context, qtbot):
+    controller = _controller(context, qtbot)
     controller.create_region_from_rect(QRectF(10, 10, 100, 60), "exclude")
     region_id = context.db.list_regions()[0].id
     controller._items[region_id].setSelected(True)
@@ -77,8 +79,8 @@ def test_delete_selected(context):
     assert context.db.list_regions() == []
 
 
-def test_geometry_commit_updates_db(context):
-    controller = _controller(context)
+def test_geometry_commit_updates_db(context, qtbot):
+    controller = _controller(context, qtbot)
     controller.create_region_from_rect(QRectF(10, 10, 100, 60), "figure")
     region_id = context.db.list_regions()[0].id
     item = controller._items[region_id]
@@ -103,12 +105,13 @@ def test_snap_outward_expands_to_cover_cut_lines():
     assert x1 == pytest.approx(0.8)
 
 
-def test_global_mode_uses_scope_provider(context):
+def test_global_mode_uses_scope_provider(context, qtbot):
     controller = RegionController(
         context, mode="global", scope_provider=lambda: ("odd", None)
     )
     controller.snap_enabled = False
-    controller.set_page(0)
+    with qtbot.waitSignal(controller.page_displayed, timeout=10_000):
+        controller.set_page(0)
     controller.create_region_from_rect(QRectF(10, 10, 100, 60), "exclude")
     r = context.db.list_regions()[0]
     assert r.scope == "odd"

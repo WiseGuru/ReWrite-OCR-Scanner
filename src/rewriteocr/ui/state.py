@@ -8,7 +8,7 @@ from collections import OrderedDict
 from pathlib import Path
 
 from PIL import Image
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, QThread, Signal, Slot
 from PySide6.QtGui import QImage, QPixmap
 
 from rewriteocr.config import Settings
@@ -37,6 +37,31 @@ def pil_to_qpixmap(img: Image.Image) -> QPixmap:
     return QPixmap.fromImage(pil_to_qimage(img))
 
 
+class _PageRenderWorker(QObject):
+    """Renders pages off the GUI thread. Synchronous renders on the GUI
+    thread block a tab's first layout pass, which paints its widgets
+    overlapping at the top-left until the render finishes."""
+
+    rendered = Signal(object, int, float, bool, QImage)  # doc id, index, dpi, deskewed
+
+    @Slot(object, int, float, bool, int, float)
+    def render(
+        self, doc, index: int, dpi: float, deskewed: bool,
+        rotation: int, deskew_angle: float,
+    ) -> None:
+        from rewriteocr.core.pdf_io import PdfError
+
+        try:
+            img = doc.render_page(index, dpi, rotation)
+            if deskewed and deskew_angle:
+                img = apply_deskew(img, deskew_angle)
+            self.rendered.emit(id(doc), index, dpi, deskewed, pil_to_qimage(img))
+        except PdfError:
+            pass  # document closed mid-request; the result is unwanted anyway
+        except Exception as exc:
+            log.warning("Page render failed (page %d): %s", index, exc)
+
+
 class ProjectContext(QObject):
     project_opened = Signal()
     project_closed = Signal()
@@ -45,6 +70,9 @@ class ProjectContext(QObject):
     model_status_changed = Signal()
     device_changed = Signal(str)
     status_message = Signal(str)
+    # A previously requested page render is now in the cache.
+    page_render_ready = Signal(int, float)  # index, dpi
+    _render_request = Signal(object, int, float, bool, int, float)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -64,6 +92,14 @@ class ProjectContext(QObject):
         self.device = "none"
 
         self._render_cache: OrderedDict[tuple, QPixmap] = OrderedDict()
+        self._pending_renders: set[tuple] = set()
+        self._render_thread = QThread(self)
+        self._render_thread.setObjectName("rewriteocr-renders")
+        self._render_worker = _PageRenderWorker()
+        self._render_worker.moveToThread(self._render_thread)
+        self._render_request.connect(self._render_worker.render)
+        self._render_worker.rendered.connect(self._on_worker_rendered)
+        self._render_thread.start()
 
     # -- project lifecycle ---------------------------------------------------
 
@@ -98,6 +134,7 @@ class ProjectContext(QObject):
         self.pdf_path = None
         self.sidecar_path = None
         self._render_cache.clear()
+        self._pending_renders.clear()
         self.project_closed.emit()
 
     # -- model selection -----------------------------------------------------
@@ -125,25 +162,65 @@ class ProjectContext(QObject):
 
     # -- rendering -----------------------------------------------------------
 
-    def render_page(
+    def _render_key(self, index: int, dpi: float, deskewed: bool) -> tuple:
+        page = self.db.get_page(index)
+        return (index, round(dpi, 1), page.rotation, round(page.deskew_angle, 2), deskewed)
+
+    def _cache_put(self, key: tuple, pixmap: QPixmap) -> None:
+        self._render_cache[key] = pixmap
+        while len(self._render_cache) > PAGE_PIXMAP_CACHE_SIZE:
+            self._render_cache.popitem(last=False)
+
+    def request_page_render(
         self, index: int, dpi: float = 120.0, deskewed: bool = True
     ) -> QPixmap | None:
-        """Cached page render honoring rotation override and stored deskew."""
+        """Cached pixmap if available, else None with a background render
+        queued; page_render_ready(index, dpi) fires when it lands. Never
+        blocks the GUI thread on a render."""
         if not self.is_open:
             return None
-        page = self.db.get_page(index)
-        key = (index, round(dpi, 1), page.rotation, round(page.deskew_angle, 2), deskewed)
+        key = self._render_key(index, dpi, deskewed)
         cached = self._render_cache.get(key)
         if cached is not None:
             self._render_cache.move_to_end(key)
             return cached
+        if key not in self._pending_renders:
+            self._pending_renders.add(key)
+            page = self.db.get_page(index)
+            self._render_request.emit(
+                self.doc, index, dpi, deskewed, page.rotation, page.deskew_angle
+            )
+        return None
+
+    @Slot(object, int, float, bool, QImage)
+    def _on_worker_rendered(
+        self, doc_token, index: int, dpi: float, deskewed: bool, image: QImage
+    ) -> None:
+        if not self.is_open or doc_token != id(self.doc):
+            return  # result from a document that has since been closed
+        key = self._render_key(index, dpi, deskewed)
+        self._pending_renders.discard(key)
+        self._cache_put(key, QPixmap.fromImage(image))
+        self.page_render_ready.emit(index, dpi)
+
+    def render_page(
+        self, index: int, dpi: float = 120.0, deskewed: bool = True
+    ) -> QPixmap | None:
+        """Synchronous render for non-interactive callers (tests, previews
+        that already run off the GUI's critical path)."""
+        if not self.is_open:
+            return None
+        key = self._render_key(index, dpi, deskewed)
+        cached = self._render_cache.get(key)
+        if cached is not None:
+            self._render_cache.move_to_end(key)
+            return cached
+        page = self.db.get_page(index)
         img = self.doc.render_page(index, dpi, page.rotation)
         if deskewed and page.deskew_angle:
             img = apply_deskew(img, page.deskew_angle)
         pixmap = pil_to_qpixmap(img)
-        self._render_cache[key] = pixmap
-        while len(self._render_cache) > PAGE_PIXMAP_CACHE_SIZE:
-            self._render_cache.popitem(last=False)
+        self._cache_put(key, pixmap)
         return pixmap
 
     def render_thumbnail(self, index: int) -> QPixmap | None:
@@ -161,4 +238,6 @@ class ProjectContext(QObject):
 
     def shutdown(self) -> None:
         self.jobs.shutdown()
+        self._render_thread.quit()
+        self._render_thread.wait(10_000)
         self.close_project()
