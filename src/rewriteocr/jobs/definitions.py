@@ -4,6 +4,7 @@ connections must stay on the thread that created them. Jobs hold no Qt."""
 from __future__ import annotations
 
 import itertools
+import logging
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,6 +26,8 @@ from rewriteocr.pipeline.extract import (
     extract_document,
     run_triage,
 )
+
+log = logging.getLogger("rewriteocr.jobs")
 
 _job_counter = itertools.count(1)
 
@@ -69,7 +72,14 @@ class OpenProjectJob(Job):
         sc_path = sidecar_path_for(self.pdf_path)
 
         if not sc_path.is_file():
-            self._migrate_legacy_sidecar(sc_path, source_hash, reporter)
+            in_place = self._migrate_legacy_sidecar(sc_path, source_hash, reporter)
+            if in_place is not None:
+                # Migration could not move the files; keep using the legacy
+                # sidecar where it is rather than failing the open.
+                with SidecarDB(in_place) as db:
+                    info = db.project_info()
+                    db.check_schema()
+                    return self._resumed(in_place, db, info)
 
         if sc_path.is_file():
             with SidecarDB(sc_path) as db:
@@ -117,32 +127,50 @@ class OpenProjectJob(Job):
             counts=self._counts(db),
         )
 
-    def _migrate_legacy_sidecar(self, sc_path: Path, source_hash: str, reporter) -> None:
+    def _migrate_legacy_sidecar(
+        self, sc_path: Path, source_hash: str, reporter
+    ) -> Path | None:
         """Early builds wrote the sidecar and figures next to the PDF. Move a
         matching one into the projects dir and rewrite figure references to
-        the new figures dir name."""
+        the new figures dir name. shutil.move throughout: os.rename cannot
+        cross drive boundaries and PDFs often live on another volume.
+
+        Returns None normally; returns the legacy path when the files could
+        not be moved, so the caller opens the project in place instead of
+        failing."""
         legacy = self.pdf_path.with_suffix(sc_path.suffix)
         if not legacy.is_file():
-            return
+            return None
         try:
             with SidecarDB(legacy) as db:
                 if db.project_info().source_hash != source_hash:
-                    return
+                    return None
         except Exception:
-            return
+            return None
         reporter.message("Moving project data into the app data folder...")
-        legacy.replace(sc_path)
-        for suffix in ("-wal", "-shm"):
-            extra = Path(str(legacy) + suffix)
-            if extra.is_file():
-                extra.replace(Path(str(sc_path) + suffix))
+        try:
+            shutil.move(str(legacy), str(sc_path))
+            for suffix in ("-wal", "-shm"):
+                extra = Path(str(legacy) + suffix)
+                if extra.is_file():
+                    shutil.move(str(extra), str(sc_path) + suffix)
+        except OSError as exc:
+            log.warning("Legacy project migration failed (%s); opening in place", exc)
+            reporter.message(
+                "Could not move the old project data; continuing with it in place."
+            )
+            return legacy if legacy.is_file() else None
         old_figs_name = legacy.stem + "_figures"
         new_figs_name = sc_path.stem + "_figures"
         old_figs = legacy.parent / old_figs_name
-        if old_figs.is_dir():
-            shutil.move(str(old_figs), str(sc_path.parent / new_figs_name))
+        try:
+            if old_figs.is_dir():
+                shutil.move(str(old_figs), str(sc_path.parent / new_figs_name))
+        except OSError as exc:
+            log.warning("Figures folder migration failed: %s", exc)
         with SidecarDB(sc_path) as db:
             db.rewrite_figure_prefix(old_figs_name, new_figs_name)
+        return None
 
     @staticmethod
     def _scan_by_content_hash(source_hash: str) -> Path | None:

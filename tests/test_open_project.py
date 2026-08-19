@@ -84,6 +84,30 @@ def test_legacy_sidecar_migrates_with_figure_refs(born_digital_pdf):
         assert db.figures_for_page(0)[0].file_path.startswith(new_figs_name + "/")
 
 
+def test_legacy_migration_move_failure_opens_in_place(born_digital_pdf, monkeypatch):
+    """A PDF on another drive makes os.rename impossible; even shutil.move
+    can fail (permissions). The open must fall back to using the legacy
+    sidecar where it is, never error out."""
+    legacy = born_digital_pdf.with_suffix(".ocrproj")
+    with SidecarDB(legacy) as db:
+        db.initialize(sha256_of_file(born_digital_pdf), born_digital_pdf.name, 6)
+        from rewriteocr.core.models import PageRecord
+
+        db.insert_pages(
+            [PageRecord(page_index=i, classification="born_digital",
+                        width_pt=612, height_pt=792) for i in range(6)]
+        )
+
+    def failing_move(src, dst, *args, **kwargs):
+        raise OSError(17, "The system cannot move the file to a different disk drive")
+
+    monkeypatch.setattr("rewriteocr.jobs.definitions.shutil.move", failing_move)
+    result = OpenProjectJob(born_digital_pdf).run(NullReporter())
+    assert result.resumed
+    assert result.sidecar_path == legacy
+    assert legacy.is_file()
+
+
 def test_discard_removes_project_and_figures(born_digital_pdf):
     result = OpenProjectJob(born_digital_pdf).run(NullReporter())
     figs = result.sidecar_path.parent / (result.sidecar_path.stem + "_figures")
