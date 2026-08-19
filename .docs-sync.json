@@ -1,0 +1,62 @@
+{
+  "//": "Code surface to required doc couplings, checked by the docs-in-sync skill against the current diff. A rule fires when a changed file matches a 'when' glob and is unmet when no changed file matches a 'require' glob.",
+
+  "rules": [
+    {
+      "name": "Data model -> DATA-MODEL.md",
+      "when": [
+        "src/rewriteocr/core/sidecar.py",
+        "src/rewriteocr/core/profiles.py",
+        "src/rewriteocr/config.py",
+        "src/rewriteocr/jobs/definitions.py"
+      ],
+      "require": ["docs/DATA-MODEL.md"],
+      "note": "Storage layout, sidecar schema/lookup, or project lifecycle changes update the data-model doc."
+    },
+    {
+      "name": "Pipeline -> PIPELINE.md",
+      "when": [
+        "src/rewriteocr/pipeline/",
+        "src/rewriteocr/core/triage.py",
+        "src/rewriteocr/core/preprocess.py",
+        "src/rewriteocr/core/flags.py",
+        "src/rewriteocr/core/stitching.py",
+        "src/rewriteocr/core/rules.py"
+      ],
+      "require": ["docs/PIPELINE.md"],
+      "note": "Thresholds, region semantics, flag formulas, stitching, and export behavior are documented in PIPELINE.md."
+    },
+    {
+      "name": "Engines/models -> ENGINES.md",
+      "when": [
+        "src/rewriteocr/engines/",
+        "src/rewriteocr/modelmgr/",
+        "src/rewriteocr/resources/manifest.json"
+      ],
+      "require": ["docs/ENGINES.md"],
+      "note": "Server lifecycle, engine roles, manifest contract, and download behavior live in ENGINES.md."
+    },
+    {
+      "name": "UI/jobs -> UI-JOBS.md",
+      "when": ["src/rewriteocr/ui/", "src/rewriteocr/jobs/queue.py", "src/rewriteocr/jobs/control.py"],
+      "require": ["docs/UI-JOBS.md"],
+      "note": "Threading model, signal flow, and canvas behavior live in UI-JOBS.md."
+    },
+    {
+      "name": "User-observable behavior -> user docs",
+      "when": ["src/rewriteocr/ui/", "src/rewriteocr/pipeline/"],
+      "require": ["wiki/**", "README.md"],
+      "note": "A change users can see (a control, a workflow step, an output difference) updates the wiki and, if affected, the README."
+    },
+    {
+      "name": "Release plumbing -> RELEASING.md",
+      "when": [
+        ".github/workflows/release.yml",
+        "packaging/",
+        "scripts/build_appimage.sh"
+      ],
+      "require": ["RELEASING.md"],
+      "note": "Asset names, build steps, and the release procedure are documented in RELEASING.md."
+    }
+  ]
+}

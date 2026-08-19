@@ -1,0 +1,111 @@
+{
+  "manifest_version": 1,
+  "models": [
+    {
+      "id": "glm-ocr-0.9b",
+      "display_name": "GLM-OCR 0.9B",
+      "description": "Default. Two-stage layout plus recognition. Strong on tables.",
+      "license": "MIT",
+      "license_url": "https://huggingface.co/zai-org/GLM-OCR",
+      "repo": "ggml-org/GLM-OCR-GGUF",
+      "revision": "65a42de1148dbed2297e922b5dbc7d9b70c36578",
+      "capabilities": {
+        "region_conditioned": true,
+        "layout_detection": true,
+        "bbox_output": false,
+        "min_region_lines": 2,
+        "output_format": "markdown"
+      },
+      "preprocess": {
+        "dpi": 200,
+        "longest_edge_px": 1540,
+        "pad_to_multiple": 0
+      },
+      "sampling": {
+        "temperature": 0.2,
+        "repeat_penalty": 1.15,
+        "repeat_last_n": 128,
+        "max_tokens": 2000
+      },
+      "prompt": {
+        "page": "Text Recognition:",
+        "region": "Text Recognition:",
+        "table": "Table Recognition:"
+      },
+      "context_size": 8192,
+      "quants": [
+        {
+          "name": "Q8_0",
+          "label": "Recommended: near-full quality, moderate size",
+          "file": "GLM-OCR-Q8_0.gguf",
+          "sha256": "45bc244a6446aff850521dc41f18bc8d7105ad5f0c2c8c28af04e7cc4f4d50b1",
+          "size_mb": 907,
+          "ram_mb": 1900
+        },
+        {
+          "name": "F16",
+          "label": "Maximum quality, largest download",
+          "file": "GLM-OCR-f16.gguf",
+          "sha256": "b06675e983db9593db78603b06f097e48c0cf078b37731c0a09612f4a249cf6f",
+          "size_mb": 1703,
+          "ram_mb": 2600
+        }
+      ],
+      "mmproj": {
+        "file": "mmproj-GLM-OCR-Q8_0.gguf",
+        "sha256": "9c4b58e33e316ed142eb5dcb41abec3844d3e6e5dc361ffb782c3fa9d175141f",
+        "size_mb": 462,
+        "quantizable": false
+      }
+    },
+    {
+      "id": "lightonocr-1b",
+      "display_name": "LightOnOCR 1B",
+      "description": "Alternate model. Single-pass page transcription. Spec targeted LightOnOCR-2-1B; this pins the official ggml-org GGUF of LightOnOCR-1B-1025 because no official GGUF of version 2 exists.",
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/lightonai/LightOnOCR-1B-1025",
+      "repo": "ggml-org/LightOnOCR-1B-1025-GGUF",
+      "revision": "f3cadff109cc6ccc50cfc3cd9f3a1425034d274d",
+      "capabilities": {
+        "region_conditioned": true,
+        "layout_detection": false,
+        "bbox_output": false,
+        "min_region_lines": 2,
+        "output_format": "markdown"
+      },
+      "preprocess": {
+        "dpi": 200,
+        "longest_edge_px": 1540,
+        "pad_to_multiple": 0
+      },
+      "sampling": {
+        "temperature": 0.2,
+        "repeat_penalty": 1.15,
+        "repeat_last_n": 128,
+        "max_tokens": 2000
+      },
+      "prompt": {
+        "page": "Convert this document page to markdown. Output only the markdown content.",
+        "region": "Convert this image region to markdown. Output only the markdown content.",
+        "table": "Convert this table to an HTML table. Output only the HTML."
+      },
+      "context_size": 8192,
+      "quants": [
+        {
+          "name": "Q8_0",
+          "label": "Recommended: near-full quality, moderate size",
+          "file": "LightOnOCR-1B-1025-Q8_0.gguf",
+          "sha256": "044e4f7c8d1d3c1e377246a35cc0a84ec2529719720140c3c3ec33cf2f045da9",
+          "size_mb": 768,
+          "ram_mb": 1700
+        }
+      ],
+      "mmproj": {
+        "file": "mmproj-LightOnOCR-1B-1025-Q8_0.gguf",
+        "sha256": "a8424b09cbef8284e37575ceaa2d65b50ce7dd242f015c19ae6c2d0de5c41ca5",
+        "size_mb": 417,
+        "quantizable": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rewrite-ocr-scanner"
+dynamic = ["version"]
+description = "Local PDF OCR to Markdown/DOCX with a human-in-the-loop review workflow"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "PySide6>=6.7",
+    "pypdfium2>=4.30",
+    "pillow>=10.0",
+    "numpy>=1.26",
+    "python-docx>=1.1",
+    "markdown-it-py>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-qt>=4.4",
+    "reportlab>=4.0",
+    "pip-licenses>=4.0",
+    "ruff>=0.4",
+]
+
+[project.gui-scripts]
+rewrite-ocr = "rewriteocr.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Single owner of the version number: src/rewriteocr/__init__.py.
+[tool.setuptools.dynamic]
+version = {attr = "rewriteocr.__version__"}
+
+[tool.setuptools.package-data]
+rewriteocr = ["resources/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires local llama-server and downloaded model weights",
+]
+addopts = "-m 'not integration'"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]

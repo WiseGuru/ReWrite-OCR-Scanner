@@ -1,0 +1,4 @@
+pypdfium2 5.13.0
+License: BSD-3-Clause, Apache-2.0, dependency licenses
+
+License text not shipped in the package metadata; see the project page for the full text.

@@ -1,0 +1,3 @@
+llama.cpp (bundled or detected inference runtime)
+License: MIT
+https://github.com/ggml-org/llama.cpp/blob/master/LICENSE
