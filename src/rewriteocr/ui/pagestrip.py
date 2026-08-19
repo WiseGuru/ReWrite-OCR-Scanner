@@ -4,11 +4,11 @@ flag severity, and review status."""
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, QThread, Signal
-from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
 
 from rewriteocr.core.models import Flag, PageRecord
-from rewriteocr.ui.state import ProjectContext, pil_to_qpixmap
+from rewriteocr.ui.state import ProjectContext, pil_to_qimage
 
 THUMB_SIZE = QSize(96, 124)
 
@@ -26,7 +26,9 @@ def severity_color(severity: float) -> QColor:
 
 
 class _ThumbnailLoader(QThread):
-    thumb_ready = Signal(int, QPixmap)
+    # QImage, never QPixmap: pixmaps are GUI-thread-only, and creating them
+    # here corrupts the window's painting for as long as the loader runs.
+    thumb_ready = Signal(int, QImage)
 
     def __init__(self, context: ProjectContext, count: int) -> None:
         super().__init__()
@@ -44,7 +46,7 @@ class _ThumbnailLoader(QThread):
                 img = doc.render_page(i, 40, 0)
             except Exception:
                 continue
-            self.thumb_ready.emit(i, pil_to_qpixmap(img))
+            self.thumb_ready.emit(i, pil_to_qimage(img))
             # Yield between pages: rendering back-to-back re-acquires the
             # global PDFium lock in a tight loop and starves the GUI thread
             # (which needs the same lock and the event queue), freezing the
@@ -100,8 +102,8 @@ class PageStrip(QListWidget):
         self._loader.thumb_ready.connect(self._on_thumb)
         self._loader.start()
 
-    def _on_thumb(self, index: int, pixmap: QPixmap) -> None:
-        self._base_thumbs[index] = pixmap
+    def _on_thumb(self, index: int, image: QImage) -> None:
+        self._base_thumbs[index] = QPixmap.fromImage(image)
         self.refresh_page(index)
 
     def refresh_page(self, index: int) -> None:

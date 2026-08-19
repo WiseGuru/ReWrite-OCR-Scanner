@@ -24,12 +24,17 @@ from rewriteocr.modelmgr.manifest import ModelSpec, load_manifest
 log = logging.getLogger("rewriteocr.ui")
 
 
-def pil_to_qpixmap(img: Image.Image) -> QPixmap:
+def pil_to_qimage(img: Image.Image) -> QImage:
+    """QImage is safe to build on any thread; QPixmap is GUI-thread-only.
+    Worker threads must hand over QImages and let the GUI convert."""
     rgb = img.convert("RGB")
-    qimg = QImage(
+    return QImage(
         rgb.tobytes(), rgb.width, rgb.height, rgb.width * 3, QImage.Format_RGB888
     ).copy()
-    return QPixmap.fromImage(qimg)
+
+
+def pil_to_qpixmap(img: Image.Image) -> QPixmap:
+    return QPixmap.fromImage(pil_to_qimage(img))
 
 
 class ProjectContext(QObject):
