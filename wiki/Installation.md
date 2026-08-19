@@ -23,6 +23,19 @@
 3. Optional but recommended: install Tesseract from your distribution
    (`sudo apt install tesseract-ocr` or equivalent).
 
+### Linux compatibility notes
+
+- The builds are distro-agnostic (Debian, Ubuntu, Fedora, Arch, openSUSE,
+  and derivatives) but **x86_64 only**; there is no ARM build.
+- They require a glibc at least as new as the build baseline (Ubuntu
+  24.04). Current Fedora, Arch, and Ubuntu 24.04+ work; older LTS releases
+  such as Ubuntu 22.04 or Debian 12 may fail to launch.
+- Some distributions need `libfuse2` installed for AppImages to mount. Any
+  AppImage also runs without FUSE:
+  `./ReWrite-OCR-Scanner-<version>-x86_64.AppImage --appimage-extract-and-run`
+- Native packages (.deb, .rpm, Flatpak) are not yet published; they are
+  planned around the full release.
+
 ## From source (development)
 
 ```

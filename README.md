@@ -33,9 +33,22 @@ The design spec lives in [ocr-app-spec.md](ocr-app-spec.md).
    and merges tables that continue across pages. Figures are cropped to real
    image files and referenced.
 
-## Requirements
+## Install
 
-- Python 3.11+ (development install) on Windows or Linux
+Grab the latest build from the
+[releases page](https://github.com/WiseGuru/ReWrite-OCR-Scanner/releases).
+The full walkthrough, including Linux glibc and FUSE notes, is in the
+[install guide](wiki/Installation.md).
+
+**Windows**: run `ReWrite-OCR-Scanner-Setup-<version>.exe`, or unzip the
+portable `-windows-x64.zip` anywhere and run `rewrite-ocr.exe`.
+
+**Linux**: download the `.AppImage`, `chmod +x` it, and run it (a portable
+`-linux-x64.tar.gz` is also published). x86_64 only, and it needs a
+reasonably current distribution; see the install guide.
+
+**The local OCR runtime** (both platforms):
+
 - [llama.cpp](https://github.com/ggml-org/llama.cpp) with `llama-server` on
   PATH (for example `winget install ggml.llamacpp`). The Vulkan build covers
   NVIDIA, AMD, and Intel GPUs; CPU is the automatic fallback.
@@ -50,6 +63,8 @@ born-digital extraction and Tesseract still work, and it prompts for a
 download when a scanned page needs the vision model.
 
 ## Development install
+
+Needs Python 3.11+ on Windows or Linux:
 
 ```
 python -m venv .venv
