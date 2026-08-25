@@ -9,7 +9,7 @@
 > have been deleted.
 >
 > Ordering agreed with the owner **2026-08-19**; last reconciled
-> **2026-08-19**.
+> **2026-08-24**.
 >
 > Reading this file top to bottom should be reading every open thread in
 > the project. The detail does not move here: each row points at its owner.
@@ -26,6 +26,7 @@ Empty is the healthy state. An occupant here is blocking or urgent.
 | # | Item | What it needs |
 |---|---|---|
 | (release) | Stable 0.1.0 | A fresh prerelease tag, the manual test pass in [../RELEASING.md](../RELEASING.md), version bump, bare tag |
+| FR-3 | Screenplay exporters | Open a generated .fdx in real Final Draft and the .docx in Word, confirming the element types, the all-caps style property and the Courier substitution. Unit tests cannot cover either |
 
 ## P2: scheduled behind P1
 
@@ -33,6 +34,7 @@ Empty is the healthy state. An occupant here is blocking or urgent.
 |---|---|---|
 | FR-2 | Lower Linux glibc floor | Owner decision: which distros must run the AppImage; then pin the release runner |
 | FR-1 | Flatpak, then .deb/.rpm | Deliberately parked until near the full release |
+| FR-4 | Per-line geometry on scanned pages | Owner decision on whether scanned-script accuracy justifies a schema bump and an `OCREngine` contract change; evidence is a born-digital versus scanned comparison of the same script |
 
 ## P3: closeout and verification debt
 

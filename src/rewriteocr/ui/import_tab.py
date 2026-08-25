@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QRadioButton,
     QVBoxLayout,
     QWidget,
 )
@@ -44,6 +45,20 @@ class ImportTab(QWidget):
         self.summary_label = QLabel("")
         self.summary_label.setWordWrap(True)
         layout.addWidget(self.summary_label)
+
+        # Document mode selects which exporters the Export tab offers. It is
+        # stored per project and can be changed there too, so a wrong pick
+        # here is never a dead end.
+        mode_row = QHBoxLayout()
+        mode_row.addWidget(QLabel("Document type:"))
+        self.prose_radio = QRadioButton("Prose document")
+        self.prose_radio.setChecked(True)
+        self.screenplay_radio = QRadioButton("Screenplay or stage play")
+        mode_row.addWidget(self.prose_radio)
+        mode_row.addWidget(self.screenplay_radio)
+        mode_row.addStretch(1)
+        layout.addLayout(mode_row)
+        self.prose_radio.toggled.connect(self._on_mode_toggled)
 
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
@@ -127,7 +142,26 @@ class ImportTab(QWidget):
         self.context.attach_project(
             job.pdf_path, result.sidecar_path, self._pending_password
         )
+        self._sync_mode_from_project()
         self._show_summary(result)
+
+    def _sync_mode_from_project(self) -> None:
+        if not self.context.is_open:
+            return
+        mode = self.context.db.project_info().document_mode
+        for radio in (self.prose_radio, self.screenplay_radio):
+            radio.blockSignals(True)
+        self.prose_radio.setChecked(mode != "screenplay")
+        self.screenplay_radio.setChecked(mode == "screenplay")
+        for radio in (self.prose_radio, self.screenplay_radio):
+            radio.blockSignals(False)
+
+    def _on_mode_toggled(self) -> None:
+        if not self.context.is_open or self.context.read_only:
+            return
+        mode = "screenplay" if self.screenplay_radio.isChecked() else "prose"
+        self.context.db.set_document_mode(mode)
+        self.context.project_opened.emit()
 
     def _handle_hash_mismatch(self, pdf_path: Path, result: OpenResult) -> None:
         box = QMessageBox(self)

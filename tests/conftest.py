@@ -135,6 +135,61 @@ def make_garbage_text_pdf(path: Path) -> Path:
     return path
 
 
+# Screenplay column positions in inches from the paper edge. A real script
+# puts action at the left margin, dialogue an inch in, the parenthetical
+# half an inch beyond that, the character cue about two inches in, and the
+# transition out to the right.
+SCREENPLAY_COLUMNS = {
+    "scene_heading": 1.5,
+    "action": 1.5,
+    "dialogue": 2.5,
+    "parenthetical": 3.0,
+    "character": 3.7,
+    "transition": 5.5,
+}
+
+# (element type, text) in printed order. ASCII only: scripts/check_dashes.py
+# fails the build on an em dash and screenplay dialogue is full of them.
+SCREENPLAY_LINES: list[tuple[str, str]] = [
+    ("action", "FADE IN:"),
+    ("scene_heading", "INT. KITCHEN - DAY"),
+    ("action", "MARLOWE stands at the window. THE DOOR SLAMS."),
+    ("character", "MARLOWE"),
+    ("parenthetical", "(quietly)"),
+    ("dialogue", "You should not have come here."),
+    ("action", "He turns away from the glass."),
+    ("character", "TERRY (V.O.)"),
+    ("dialogue", "I never did have much of a choice."),
+    ("transition", "CUT TO:"),
+]
+
+
+def make_screenplay_pdf(path: Path, left_margin_in: float = 0.0) -> Path:
+    """A born-digital screenplay laid out at real column positions, so the
+    indent oracle has genuine geometry to recover.
+
+    `left_margin_in` shifts every column right, which is how a script that
+    was printed or scanned off-centre arrives. The classifier measures
+    offsets from the document's own action margin, so it must still classify.
+    """
+    c = canvas.Canvas(str(path), pagesize=LETTER)
+    y = PAGE_H - 100
+    c.setFont("Courier", 12)
+    for kind, text in SCREENPLAY_LINES:
+        x = (SCREENPLAY_COLUMNS[kind] + left_margin_in) * 72
+        c.drawString(x, y, text)
+        # A blank line between elements, none inside a speech.
+        y -= 14 if kind in ("character", "parenthetical") else 28
+    c.showPage()
+    c.save()
+    return path
+
+
+@pytest.fixture
+def screenplay_pdf(tmp_path):
+    return make_screenplay_pdf(tmp_path / "screenplay.pdf")
+
+
 @pytest.fixture
 def born_digital_pdf(tmp_path):
     return make_born_digital_pdf(tmp_path / "born.pdf")

@@ -73,6 +73,27 @@ waits), and `ImportTab.open_path` calls
 encryption probe, so the GUI thread never queues behind a background render
 pass on the pdfium lock while the tabs are being swapped.
 
+## Import and Export tab behaviors worth knowing
+
+- **Document type** (prose or screenplay) is a radio pair on Import and a
+  combo on Export; both write `project.document_mode` to the sidecar and
+  the Export tab re-reads it on `project_opened`. Changing it on Import
+  re-emits `project_opened` so Export repopulates.
+- **The export format list is built from `pipeline/formats.py`**, not
+  hardcoded, and `formats_for_mode` hides the screenplay formats in a prose
+  project. The suffix, save-dialog filter and default output path all come
+  from the same registry row, so a format is added in one place.
+- Selecting a screenplay format disables the page-break combo and shows a
+  hint: Final Draft and Word both repaginate on open, so forcing OCR page
+  boundaries would only produce short pages.
+- `ExportJob` takes the source `pdf_path` because screenplay export
+  re-derives glyph geometry from it for born-digital pages. It is optional;
+  a missing file degrades to lexical classification rather than failing.
+- The result label reports the classifier's summary (elements classified,
+  pages where column positions were used, uncertain cues, page furniture
+  removed). It travels on `StitchLog.screenplay`, so the job result stays a
+  plain `(out_path, StitchLog)` tuple.
+
 ## Review tab behaviors worth knowing
 
 - Filter defaults to flagged-only when flags exist; flagged navigation is

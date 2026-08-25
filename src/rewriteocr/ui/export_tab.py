@@ -14,13 +14,13 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QRadioButton,
     QVBoxLayout,
     QWidget,
 )
 
 from rewriteocr.core.models import ExportOptions, StitchLog
 from rewriteocr.jobs.definitions import ExportJob
+from rewriteocr.pipeline.formats import format_spec, formats_for_mode
 from rewriteocr.ui.state import ProjectContext
 
 
@@ -31,13 +31,19 @@ class ExportTab(QWidget):
         self._job: ExportJob | None = None
 
         layout = QVBoxLayout(self)
+        mode_row = QHBoxLayout()
+        mode_row.addWidget(QLabel("Document is:"))
+        self.mode_combo = QComboBox()
+        self.mode_combo.addItem("Prose", "prose")
+        self.mode_combo.addItem("Screenplay or stage play", "screenplay")
+        mode_row.addWidget(self.mode_combo)
+        mode_row.addStretch(1)
+        layout.addLayout(mode_row)
+
         fmt_row = QHBoxLayout()
         fmt_row.addWidget(QLabel("Format:"))
-        self.md_radio = QRadioButton("Markdown (.md)")
-        self.md_radio.setChecked(True)
-        self.docx_radio = QRadioButton("Word (.docx)")
-        fmt_row.addWidget(self.md_radio)
-        fmt_row.addWidget(self.docx_radio)
+        self.fmt_combo = QComboBox()
+        fmt_row.addWidget(self.fmt_combo)
         fmt_row.addStretch(1)
         layout.addLayout(fmt_row)
 
@@ -56,6 +62,10 @@ class ExportTab(QWidget):
         opt_row.addWidget(self.stitch_check)
         opt_row.addStretch(1)
         layout.addLayout(opt_row)
+
+        self.format_hint = QLabel("")
+        self.format_hint.setWordWrap(True)
+        layout.addWidget(self.format_hint)
 
         path_row = QHBoxLayout()
         path_row.addWidget(QLabel("Output file:"))
@@ -78,33 +88,83 @@ class ExportTab(QWidget):
         layout.addWidget(self.result_label)
         layout.addStretch(1)
 
-        self.md_radio.toggled.connect(self._sync_extension)
+        self._populate_formats("prose")
+        self.fmt_combo.currentIndexChanged.connect(self._on_format_changed)
+        self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
         context.project_opened.connect(self._on_project_opened)
         context.jobs.job_finished.connect(self._on_finished)
         context.jobs.job_failed.connect(self._on_failed)
 
+    # -- format and mode -----------------------------------------------------
+
+    def _populate_formats(self, mode: str) -> None:
+        """Rebuild the format list for the document mode, keeping the current
+        selection when that format is still on offer."""
+        previous = self.fmt_combo.currentData()
+        self.fmt_combo.blockSignals(True)
+        self.fmt_combo.clear()
+        for spec in formats_for_mode(mode):
+            self.fmt_combo.addItem(spec.label, spec.key)
+        index = self.fmt_combo.findData(previous)
+        self.fmt_combo.setCurrentIndex(max(index, 0))
+        self.fmt_combo.blockSignals(False)
+        self._apply_format()
+
+    def _spec(self):
+        return format_spec(self.fmt_combo.currentData() or "markdown")
+
+    def _apply_format(self) -> None:
+        spec = self._spec()
+        # Screenplay formats paginate themselves: Final Draft and Word both
+        # repaginate on open, so forcing OCR page boundaries only makes short
+        # pages.
+        self.break_combo.setEnabled(not spec.screenplay)
+        if spec.screenplay:
+            self.format_hint.setText(
+                "Screenplay formats paginate themselves, so the page-break"
+                " option does not apply. Blocks are classified as scene"
+                " heading, action, character, parenthetical, dialogue or"
+                " transition before writing."
+            )
+        else:
+            self.format_hint.setText("")
+
+    def _on_format_changed(self) -> None:
+        self._apply_format()
+        self._sync_extension()
+
+    def _on_mode_changed(self) -> None:
+        mode = self.mode_combo.currentData()
+        if self.context.is_open and not self.context.read_only:
+            self.context.db.set_document_mode(mode)
+        self._populate_formats(mode)
+        self._sync_extension()
+
     def _on_project_opened(self) -> None:
+        mode = "prose"
+        if self.context.is_open:
+            mode = self.context.db.project_info().document_mode
+        self.mode_combo.blockSignals(True)
+        self.mode_combo.setCurrentIndex(max(self.mode_combo.findData(mode), 0))
+        self.mode_combo.blockSignals(False)
+        self._populate_formats(mode)
         if self.context.pdf_path is not None:
-            default = self.context.pdf_path.with_suffix(".md")
+            default = self.context.pdf_path.with_suffix(self._spec().suffix)
             self.path_edit.setText(str(default))
 
     def _sync_extension(self) -> None:
         text = self.path_edit.text().strip()
         if not text:
             return
-        suffix = ".md" if self.md_radio.isChecked() else ".docx"
-        self.path_edit.setText(str(Path(text).with_suffix(suffix)))
+        self.path_edit.setText(str(Path(text).with_suffix(self._spec().suffix)))
 
     def _browse(self) -> None:
-        if self.md_radio.isChecked():
-            filt, suffix = "Markdown (*.md)", ".md"
-        else:
-            filt, suffix = "Word document (*.docx)", ".docx"
+        spec = self._spec()
         start = self.path_edit.text() or self.context.settings.get("last_dir", "")
-        path, _ = QFileDialog.getSaveFileName(self, "Export to", start, filt)
+        path, _ = QFileDialog.getSaveFileName(self, "Export to", start, spec.file_filter)
         if path:
-            if not path.lower().endswith(suffix):
-                path += suffix
+            if not path.lower().endswith(spec.suffix):
+                path += spec.suffix
             self.path_edit.setText(path)
 
     def _unreviewed_flagged(self) -> list[int]:
@@ -136,11 +196,16 @@ class ExportTab(QWidget):
             if answer != QMessageBox.Yes:
                 return
         options = ExportOptions(
-            fmt="docx" if self.docx_radio.isChecked() else "markdown",
+            fmt=self.fmt_combo.currentData(),
             page_break=self.break_combo.currentData(),
             stitch=self.stitch_check.isChecked(),
         )
-        self._job = ExportJob(self.context.sidecar_path, Path(out_text), options)
+        self._job = ExportJob(
+            self.context.sidecar_path,
+            Path(out_text),
+            options,
+            pdf_path=self.context.pdf_path,
+        )
         self.export_btn.setEnabled(False)
         self.result_label.setText("Exporting...")
         self.context.jobs.submit(self._job)
@@ -159,6 +224,18 @@ class ExportTab(QWidget):
             notes.append(f"{len(log.headers_dropped)} running header/footer pattern(s) removed")
         if log.tables_merged:
             notes.append(f"{len(log.tables_merged)} table(s) merged across pages")
+        if log.screenplay is not None:
+            report = log.screenplay
+            kind = "stage play" if report.stage_play else "screenplay"
+            notes.append(f"{sum(report.counts.values())} {kind} elements classified")
+            if report.stage_play:
+                notes.append(f"{len(report.cast)} speaking characters found")
+            if report.geometry_pages:
+                notes.append(f"column positions used on {report.geometry_pages} page(s)")
+            if report.low_confidence:
+                notes.append(f"{len(report.low_confidence)} uncertain character cue(s)")
+            if report.dropped_artifacts:
+                notes.append(f"{len(report.dropped_artifacts)} page-furniture line(s) removed")
         note = ("; ".join(notes) + ".") if notes else ""
         self.result_label.setText(f"Exported to {out_path}. {note}")
 

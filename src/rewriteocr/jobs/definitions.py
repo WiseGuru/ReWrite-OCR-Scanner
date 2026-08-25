@@ -18,14 +18,13 @@ from rewriteocr.jobs.control import JobControl
 from rewriteocr.modelmgr import store
 from rewriteocr.modelmgr.downloader import download_file
 from rewriteocr.modelmgr.manifest import ModelSpec
-from rewriteocr.pipeline.export_docx import export_docx
-from rewriteocr.pipeline.export_md import export_markdown
 from rewriteocr.pipeline.extract import (
     ExtractOptions,
     ExtractStats,
     extract_document,
     run_triage,
 )
+from rewriteocr.pipeline.formats import format_spec
 
 log = logging.getLogger("rewriteocr.jobs")
 
@@ -238,18 +237,26 @@ class ExtractJob(Job):
 class ExportJob(Job):
     description = "Exporting"
 
-    def __init__(self, sidecar_path: Path, out_path: Path, options: ExportOptions) -> None:
+    def __init__(
+        self,
+        sidecar_path: Path,
+        out_path: Path,
+        options: ExportOptions,
+        pdf_path: Path | None = None,
+    ) -> None:
         super().__init__()
         self.sidecar_path = Path(sidecar_path)
         self.out_path = Path(out_path)
         self.options = options
+        # Screenplay formats re-derive glyph geometry from the source PDF for
+        # born-digital pages; prose formats ignore it.
+        self.pdf_path = Path(pdf_path) if pdf_path is not None else None
 
     def run(self, reporter):
+        spec = format_spec(self.options.fmt)
+        reporter.message(f"Writing {spec.label}...")
         with SidecarDB(self.sidecar_path) as db:
-            if self.options.fmt == "docx":
-                log = export_docx(db, self.out_path, self.options)
-            else:
-                log = export_markdown(db, self.out_path, self.options)
+            log = spec.exporter(db, self.pdf_path, self.out_path, self.options)
         return self.out_path, log
 
 

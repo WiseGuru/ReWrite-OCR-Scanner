@@ -79,14 +79,16 @@ def glyphs_in_region(glyphs: list[GlyphBox], region: Region) -> list[GlyphBox]:
     return [g for g in glyphs if _center_in(g, region)]
 
 
-def glyphs_to_text(glyphs: list[GlyphBox]) -> str:
-    """Rebuild reading text from glyph geometry: bin into lines by vertical
-    center, order by x, insert spaces on horizontal gaps and paragraph breaks
-    on large vertical gaps. Used only when geometry filtering changed the
-    glyph set; untouched pages keep the PDF's own text order."""
+def bin_glyph_lines(glyphs: list[GlyphBox]) -> tuple[list[list[GlyphBox]], float]:
+    """Bin inked glyphs into text lines by vertical center, top to bottom.
+
+    Returns the lines and the median glyph height, which callers use as the
+    scale for vertical-gap decisions. Shared by glyphs_to_text and by the
+    screenplay indent oracle, which needs the same line segmentation.
+    """
     inked = [g for g in glyphs if g.char and not g.char.isspace()]
     if not inked:
-        return ""
+        return [], 0.01
     heights = [g.y1 - g.y0 for g in inked]
     med_h = statistics.median(heights) or 0.01
 
@@ -105,6 +107,18 @@ def glyphs_to_text(glyphs: list[GlyphBox]) -> str:
             current = [g]
             current_cy = cy
     lines.append(current)
+    return lines, med_h
+
+
+def glyphs_to_text(glyphs: list[GlyphBox]) -> str:
+    """Rebuild reading text from glyph geometry: bin into lines by vertical
+    center, order by x, insert spaces on horizontal gaps and paragraph breaks
+    on large vertical gaps. Used only when geometry filtering changed the
+    glyph set; untouched pages keep the PDF's own text order."""
+    lines, med_h = bin_glyph_lines(glyphs)
+    if not lines:
+        return ""
+    inked = [g for line in lines for g in line]
 
     widths = [g.x1 - g.x0 for g in inked if g.x1 > g.x0]
     med_w = statistics.median(widths) if widths else 0.005

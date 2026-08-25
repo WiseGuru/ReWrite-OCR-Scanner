@@ -17,14 +17,17 @@
       "name": "Pipeline -> PIPELINE.md",
       "when": [
         "src/rewriteocr/pipeline/",
+        "src/rewriteocr/core/models.py",
         "src/rewriteocr/core/triage.py",
         "src/rewriteocr/core/preprocess.py",
         "src/rewriteocr/core/flags.py",
         "src/rewriteocr/core/stitching.py",
-        "src/rewriteocr/core/rules.py"
+        "src/rewriteocr/core/rules.py",
+        "src/rewriteocr/core/screenplay.py",
+        "src/rewriteocr/core/screenplay_geom.py"
       ],
       "require": ["docs/PIPELINE.md"],
-      "note": "Thresholds, region semantics, flag formulas, stitching, and export behavior are documented in PIPELINE.md."
+      "note": "Thresholds, region semantics, flag formulas, stitching, screenplay classification, and export behavior are documented in PIPELINE.md. core/models.py is here because the shared dataclasses (ExportOptions, StitchLog, the screenplay element stream) are the pipeline's contracts."
     },
     {
       "name": "Engines/models -> ENGINES.md",

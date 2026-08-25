@@ -1,9 +1,10 @@
 # ReWrite OCR Scanner
 
 A desktop application that converts PDFs (born-digital, scanned, or mixed)
-into Markdown and DOCX using a local vision-language OCR model, with a
-human-in-the-loop review and correction workflow. Everything runs on your
-machine; no network access is needed after the one-time model download.
+into Markdown, DOCX and screenplay formats using a local vision-language OCR
+model, with a human-in-the-loop review and correction workflow. Everything
+runs on your machine; no network access is needed after the one-time model
+download.
 
 The design spec lives in [ocr-app-spec.md](ocr-app-spec.md).
 
@@ -11,7 +12,8 @@ The design spec lives in [ocr-app-spec.md](ocr-app-spec.md).
 
 1. **Import**: open a PDF. Pages are classified as born-digital (usable text
    layer), scanned, or mixed. Born-digital pages never touch a model, so a
-   300-page digital PDF finishes in seconds.
+   300-page digital PDF finishes in seconds. Mark the document as prose or
+   as a screenplay here; that choice decides which formats Export offers.
 2. **Rules** (optional): draw exclude boxes over headers, footers, and margin
    notes, or column boxes to fix reading order, scoped to all, odd, even, a
    range, or a single page. Odd/even scoping handles mirrored book margins.
@@ -31,7 +33,37 @@ The design spec lives in [ocr-app-spec.md](ocr-app-spec.md).
 5. **Export**: Markdown (canonical) or DOCX rendered from it. Cross-page
    cleanup rejoins hyphenated words, drops running headers and page numbers,
    and merges tables that continue across pages. Figures are cropped to real
-   image files and referenced.
+   image files and referenced. A screenplay also exports as Fountain,
+   Final Draft (.fdx), or a Word file carrying real screenplay styles.
+
+## Screenplays and stage plays
+
+Mark a document as a screenplay at Import and Export gains three formats
+that carry the script's structure, not just its words:
+
+- **Fountain (.fountain)**, read by Highland, Slugline, Beat, WriterDuet and
+  Trelby.
+- **Final Draft (.fdx)**, the format the industry opens files in.
+- **Screenplay Word (.docx)**, with named Scene Heading, Action, Character,
+  Parenthetical, Dialogue and Transition styles at the conventional indents.
+  This is how stage plays circulate, since theatre has no interchange
+  standard.
+
+Each block is classified as scene heading, action, character cue,
+parenthetical, dialogue or transition before writing, so the result opens as
+a real script rather than a wall of paragraphs. Both layouts work: a
+screenplay, where the cue sits in its own column, and a published stage play,
+where it is inline (`KEN. I am not scared.`) and OCR has often run a whole
+exchange into one paragraph. On a born-digital PDF the classifier also reads
+the column each line starts in, which is the strongest signal a screenplay
+has. Page numbers, `CONTINUED:` and `(MORE)` are
+dropped, and the export summary says how many elements were classified and
+whether any character cues were uncertain.
+
+Two current limits: side-by-side (dual) dialogue is carried through to both
+Fountain and Final Draft when the source marks it, but is not inferred from
+an unmarked scan, and Final Draft files carry their title fields as plain
+paragraphs rather than a Final Draft title page.
 
 ## Install
 

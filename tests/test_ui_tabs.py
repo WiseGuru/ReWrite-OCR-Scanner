@@ -143,3 +143,78 @@ def test_enforcer_hides_a_stray_visible_page(qapp, window):
 
     window._enforce_single_page()
     assert_single_page(window)
+
+
+# -- export format selection -------------------------------------------------
+
+
+def format_keys(window) -> list[str]:
+    combo = window.export_tab.fmt_combo
+    return [combo.itemData(i) for i in range(combo.count())]
+
+
+def select_format(window, key: str) -> None:
+    combo = window.export_tab.fmt_combo
+    index = combo.findData(key)
+    assert index >= 0, f"{key} not offered: {format_keys(window)}"
+    combo.setCurrentIndex(index)
+
+
+def open_screenplay_project(qapp, window, tmp_path):
+    pdf = make_born_digital_pdf(tmp_path / "script.pdf", n_pages=3)
+    window.import_tab.open_path(pdf)
+    pump(qapp, window)
+    window.import_tab.screenplay_radio.setChecked(True)
+    qapp.processEvents()
+    return pdf
+
+
+def test_prose_project_does_not_offer_screenplay_formats(qapp, window, tmp_path):
+    pdf = make_born_digital_pdf(tmp_path / "prose.pdf", n_pages=3)
+    window.import_tab.open_path(pdf)
+    pump(qapp, window)
+    assert format_keys(window) == ["markdown", "docx"]
+
+
+def test_screenplay_mode_offers_the_screenplay_formats(qapp, window, tmp_path):
+    open_screenplay_project(qapp, window, tmp_path)
+    assert "fountain" in format_keys(window)
+    assert "fdx" in format_keys(window)
+    assert "screenplay_docx" in format_keys(window)
+
+
+def test_mode_is_persisted_to_the_sidecar(qapp, window, tmp_path):
+    open_screenplay_project(qapp, window, tmp_path)
+    assert window.context.db.project_info().document_mode == "screenplay"
+
+
+def test_format_choice_syncs_the_output_extension(qapp, window, tmp_path):
+    open_screenplay_project(qapp, window, tmp_path)
+    tab = window.export_tab
+
+    select_format(window, "fountain")
+    qapp.processEvents()
+    assert tab.path_edit.text().endswith(".fountain")
+
+    select_format(window, "fdx")
+    qapp.processEvents()
+    assert tab.path_edit.text().endswith(".fdx")
+
+    select_format(window, "markdown")
+    qapp.processEvents()
+    assert tab.path_edit.text().endswith(".md")
+
+
+def test_screenplay_formats_disable_the_page_break_option(qapp, window, tmp_path):
+    open_screenplay_project(qapp, window, tmp_path)
+    tab = window.export_tab
+
+    select_format(window, "fountain")
+    qapp.processEvents()
+    assert not tab.break_combo.isEnabled()
+    assert tab.format_hint.text()
+
+    select_format(window, "markdown")
+    qapp.processEvents()
+    assert tab.break_combo.isEnabled()
+    assert not tab.format_hint.text()

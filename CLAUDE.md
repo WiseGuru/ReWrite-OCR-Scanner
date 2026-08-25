@@ -40,7 +40,9 @@ overview; user documentation lives in [wiki/](wiki/).
   [docs/DATA-MODEL.md](docs/DATA-MODEL.md).
 - **Pipeline**: triage thresholds, deskew, extraction dispatch, region
   semantics (explicit-layout vs carve-out), flag formulas, stitching,
-  exporters. See [docs/PIPELINE.md](docs/PIPELINE.md).
+  the export format registry, the screenplay classifier and its
+  born-digital indent oracle, exporters. See
+  [docs/PIPELINE.md](docs/PIPELINE.md).
 - **Engines and models**: llama-server lifecycle (ports, identity check,
   CPU fallback, teardown), VLM/Tesseract roles, manifest contract,
   downloader. See [docs/ENGINES.md](docs/ENGINES.md).

@@ -350,6 +350,8 @@ Behavior rules:
 
 **Markdown is the canonical intermediate.** DOCX renders from it. There is no independent DOCX generation path.
 
+Screenplay exports (Fountain, FDX, styled DOCX) are additional renderers over the same canonical Markdown, reached through a classification pass that produces an in-memory element stream. The stream is never stored, and there is still no generation path that bypasses the Markdown.
+
 Markdown output:
 - Standard CommonMark plus HTML tables where complexity requires it.
 - Figures written to `<output-stem>_figures/` and referenced relatively.

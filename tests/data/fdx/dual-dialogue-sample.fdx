@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<FinalDraft DocumentType="Script" Template="No" Version="1">
+
+  <Content>
+
+    <Paragraph Type="Scene Heading">
+      <Text>INT. DINER - NIGHT</Text>
+    </Paragraph>
+
+    <Paragraph Type="Action">
+      <Text>MARA and DELL sit across a formica table. Neither has touched the coffee.</Text>
+    </Paragraph>
+
+    <Paragraph Type="Character">
+      <Text>MARA</Text>
+    </Paragraph>
+
+    <Paragraph Type="Dialogue">
+      <Text>Say it.</Text>
+    </Paragraph>
+
+    <!-- Dual dialogue block.
+
+         The outer <Paragraph> is an untyped wrapper. It carries no Type
+         attribute and no <Text> of its own. All the real content lives
+         inside <DualDialogue>, as a flat sequence of Character/Dialogue
+         pairs: left column first, then right column.
+
+         The wrapper is what trips up naive parsers. Iterating direct
+         children of <Content> gives you a Paragraph with no Type; using
+         .//Paragraph gives you the inner ones plus the wrapper. Neither
+         is right on its own. -->
+    <Paragraph>
+      <DualDialogue>
+
+        <Paragraph Type="Character">
+          <Text>MARA</Text>
+        </Paragraph>
+        <Paragraph Type="Parenthetical">
+          <Text>(overlapping)</Text>
+        </Paragraph>
+        <Paragraph Type="Dialogue">
+          <Text>I'm not doing this again.</Text>
+        </Paragraph>
+
+        <Paragraph Type="Character">
+          <Text>DELL</Text>
+        </Paragraph>
+        <Paragraph Type="Dialogue">
+          <Text>You already did.</Text>
+        </Paragraph>
+
+      </DualDialogue>
+    </Paragraph>
+
+    <Paragraph Type="Action">
+      <Text>Silence. The waitress refills nothing.</Text>
+    </Paragraph>
+
+    <!-- A second dual block, with inline styling inside the dialogue.
+         A Paragraph can hold multiple <Text> runs, each with its own
+         Style attribute. Concatenate them to get the line. -->
+    <Paragraph>
+      <DualDialogue>
+
+        <Paragraph Type="Character">
+          <Text>DELL</Text>
+        </Paragraph>
+        <Paragraph Type="Dialogue">
+          <Text>Then </Text>
+          <Text Style="Italic">go</Text>
+          <Text>.</Text>
+        </Paragraph>
+
+        <Paragraph Type="Character">
+          <Text>MARA</Text>
+        </Paragraph>
+        <Paragraph Type="Dialogue">
+          <Text>I'm going.</Text>
+        </Paragraph>
+
+      </DualDialogue>
+    </Paragraph>
+
+    <Paragraph Type="Transition">
+      <Text>CUT TO:</Text>
+    </Paragraph>
+
+  </Content>
+
+</FinalDraft>

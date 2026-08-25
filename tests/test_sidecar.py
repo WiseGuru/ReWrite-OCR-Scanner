@@ -25,6 +25,71 @@ def test_project_info_roundtrip(db):
     db.check_schema()
 
 
+def test_document_mode_defaults_to_prose_and_round_trips(db):
+    assert db.project_info().document_mode == "prose"
+    db.set_document_mode("screenplay")
+    assert db.project_info().document_mode == "screenplay"
+
+
+# Schema 1: the project table before document_mode was added.
+_V1_DDL = """
+CREATE TABLE project (
+  id                INTEGER PRIMARY KEY CHECK (id = 1),
+  source_hash       TEXT NOT NULL,
+  source_filename   TEXT NOT NULL,
+  source_page_count INTEGER NOT NULL,
+  app_version       TEXT NOT NULL,
+  schema_version    INTEGER NOT NULL,
+  created_at        TEXT NOT NULL,
+  modified_at       TEXT NOT NULL
+);
+CREATE TABLE pages (
+  page_index     INTEGER PRIMARY KEY,
+  classification TEXT NOT NULL,
+  deskew_angle   REAL DEFAULT 0.0,
+  rotation       INTEGER DEFAULT 0,
+  width_pt       REAL NOT NULL,
+  height_pt      REAL NOT NULL,
+  review_status  TEXT DEFAULT 'unreviewed',
+  extracted_text TEXT,
+  edited_text    TEXT,
+  engine_used    TEXT,
+  model_id       TEXT,
+  model_revision TEXT,
+  extracted_at   TEXT
+);
+"""
+
+
+def test_v1_sidecar_migrates_forward_without_loss(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "legacy.ocrproj"
+    conn = sqlite3.connect(path)
+    conn.executescript(_V1_DDL)
+    conn.execute(
+        "INSERT INTO project VALUES (1, 'h', 'old.pdf', 2, '0.0.1', 1, 't', 't')"
+    )
+    conn.execute(
+        "INSERT INTO pages (page_index, classification, width_pt, height_pt,"
+        " extracted_text) VALUES (0, 'scanned', 612, 792, 'kept text')"
+    )
+    conn.commit()
+    conn.close()
+
+    db = SidecarDB(path)
+    db.check_schema()
+    info = db.project_info()
+    assert info.schema_version == 2
+    assert info.document_mode == "prose"
+    assert info.source_filename == "old.pdf"
+    assert db.get_page(0).extracted_text == "kept text"
+    # Re-running is a no-op, not a second ALTER.
+    db.check_schema()
+    assert db.project_info().schema_version == 2
+    db.close()
+
+
 def test_page_result_written_atomically_with_flags(db):
     db.write_page_result(
         1, "# Page two", "vlm:glm-ocr-0.9b", "glm-ocr-0.9b", "65a42de",

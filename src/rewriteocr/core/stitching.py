@@ -35,7 +35,13 @@ def _normalize_header_line(line: str) -> str:
     return _WS.sub(" ", stripped.lower())
 
 
-def drop_running_headers(pages: list[str], log: StitchLog) -> list[str]:
+def drop_running_headers(
+    pages: list[str], log: StitchLog, protect: re.Pattern[str] | None = None
+) -> list[str]:
+    """`protect` names lines that must never be deleted however often they
+    repeat. A bottle-episode screenplay can open more than 60% of its pages
+    with the same scene heading, and silently deleting those is total data
+    loss; the screenplay export passes its scene-heading pattern here."""
     if len([p for p in pages if p.strip()]) < MIN_PAGES_FOR_HEADER_DETECTION:
         return pages
     first_counts: dict[str, int] = {}
@@ -67,6 +73,11 @@ def drop_running_headers(pages: list[str], log: StitchLog) -> list[str]:
             first_i, last_i = idx_nonblank[0], idx_nonblank[-1]
             first_key = _normalize_header_line(lines[first_i])
             last_key = _normalize_header_line(lines[last_i])
+            if protect is not None:
+                if protect.match(lines[first_i].strip().upper()):
+                    first_key = ""
+                if protect.match(lines[last_i].strip().upper()):
+                    last_key = ""
             if first_key in drop_first:
                 to_delete.add(first_i)
                 if first_key not in log.headers_dropped:
@@ -147,9 +158,11 @@ def rejoin_hyphenation(pages: list[str], log: StitchLog) -> list[str]:
     return out
 
 
-def stitch_pages(pages: list[str]) -> tuple[list[str], StitchLog]:
+def stitch_pages(
+    pages: list[str], protect: re.Pattern[str] | None = None
+) -> tuple[list[str], StitchLog]:
     log = StitchLog()
-    pages = drop_running_headers(pages, log)
+    pages = drop_running_headers(pages, log, protect)
     pages = merge_continued_tables(pages, log)
     pages = rejoin_hyphenation(pages, log)
     return pages, log

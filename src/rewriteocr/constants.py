@@ -1,7 +1,8 @@
 """Application-wide constants. Heuristic thresholds live with their modules."""
 
 APP_NAME = "ReWriteOCR"
-SCHEMA_VERSION = 1
+# 2: project.document_mode, which selects the screenplay exporters.
+SCHEMA_VERSION = 2
 SIDECAR_SUFFIX = ".ocrproj"
 
 # Base of the port range probed for the embedded llama-server instance.

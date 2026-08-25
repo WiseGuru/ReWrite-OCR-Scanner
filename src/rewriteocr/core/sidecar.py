@@ -17,6 +17,7 @@ from rewriteocr import __version__
 from rewriteocr.config import projects_dir
 from rewriteocr.constants import SCHEMA_VERSION, SIDECAR_SUFFIX
 from rewriteocr.core.models import (
+    DocumentMode,
     FigureRef,
     Flag,
     PageRecord,
@@ -38,7 +39,8 @@ CREATE TABLE IF NOT EXISTS project (
   app_version       TEXT NOT NULL,
   schema_version    INTEGER NOT NULL,
   created_at        TEXT NOT NULL,
-  modified_at       TEXT NOT NULL
+  modified_at       TEXT NOT NULL,
+  document_mode     TEXT NOT NULL DEFAULT 'prose'
 );
 
 CREATE TABLE IF NOT EXISTS pages (
@@ -139,6 +141,7 @@ class SidecarDB:
         row = self._conn.execute("SELECT * FROM project WHERE id = 1").fetchone()
         if row is None:
             raise SidecarError("Sidecar has no project row.")
+        keys = row.keys()
         return ProjectInfo(
             source_hash=row["source_hash"],
             source_filename=row["source_filename"],
@@ -147,7 +150,16 @@ class SidecarDB:
             schema_version=row["schema_version"],
             created_at=row["created_at"],
             modified_at=row["modified_at"],
+            # Read defensively: project_info() is called by check_schema()
+            # before the v2 migration has added the column.
+            document_mode=(
+                row["document_mode"] if "document_mode" in keys else "prose"
+            ) or "prose",
         )
+
+    def _has_column(self, table: str, column: str) -> bool:
+        rows = self._conn.execute(f"PRAGMA table_info({table})").fetchall()
+        return any(r["name"] == column for r in rows)
 
     def check_schema(self) -> None:
         info = self.project_info()
@@ -156,7 +168,27 @@ class SidecarDB:
                 f"Sidecar schema {info.schema_version} is newer than this app supports"
                 f" ({SCHEMA_VERSION}). Update the application."
             )
-        # Forward migrations slot in here when SCHEMA_VERSION grows past 1.
+        # Forward migrations, oldest first. Each is guarded so a re-run is a
+        # no-op; the stored schema_version is bumped once at the end.
+        if info.schema_version < 2 and not self._has_column("project", "document_mode"):
+            with self._conn:
+                self._conn.execute(
+                    "ALTER TABLE project ADD COLUMN document_mode TEXT NOT NULL"
+                    " DEFAULT 'prose'"
+                )
+        if info.schema_version < SCHEMA_VERSION:
+            with self._conn:
+                self._conn.execute(
+                    "UPDATE project SET schema_version = ?, modified_at = ? WHERE id = 1",
+                    (SCHEMA_VERSION, now_iso()),
+                )
+
+    def set_document_mode(self, mode: DocumentMode) -> None:
+        with self._conn:
+            self._conn.execute(
+                "UPDATE project SET document_mode = ?, modified_at = ? WHERE id = 1",
+                (mode, now_iso()),
+            )
 
     def set_page_count(self, count: int) -> None:
         with self._conn:

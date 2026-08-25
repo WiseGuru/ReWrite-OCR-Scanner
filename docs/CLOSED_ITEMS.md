@@ -33,6 +33,7 @@ Number order within each kind, matching the register.
 
 | # | Section |
 |---|---------|
+| FR-5 | [closed/fr-5.md](closed/fr-5.md) |
 
 ### Triage requests
 

@@ -36,8 +36,20 @@ Key invariants:
   first.
 - `model_id`/`model_revision` are stored per page for reproducible bug
   reports.
+- `project.document_mode` is `prose` or `screenplay`. It selects which
+  exporters the Export tab offers and turns on the screenplay classifier;
+  it is set on the Import tab and changeable from Export, so a wrong pick
+  is never a dead end. Nothing else in the pipeline reads it.
 - Schema migrations key off `project.schema_version`
   (`constants.SCHEMA_VERSION`); forward-only, slotted in `check_schema`.
+  Each step is guarded so a re-run is a no-op, and the stored version is
+  bumped once at the end. **Schema 2** added `document_mode`; `project_info`
+  reads that column defensively because `check_schema` calls it before the
+  migration has run.
+
+No per-line geometry is stored. Screenplay column positions are re-derived
+from the source PDF at export time (`core/screenplay_geom.py`), which is why
+`ExportJob` takes a `pdf_path`.
 
 ## Project file naming and lookup
 

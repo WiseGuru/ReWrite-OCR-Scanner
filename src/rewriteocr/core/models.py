@@ -9,6 +9,7 @@ Classification = Literal["born_digital", "scanned", "mixed"]
 ReviewStatus = Literal["unreviewed", "reviewed", "needs_work"]
 RegionKind = Literal["exclude", "table", "figure", "column", "heading"]
 RegionScope = Literal["all", "odd", "even", "range", "single"]
+DocumentMode = Literal["prose", "screenplay"]
 
 
 @dataclass
@@ -131,18 +132,76 @@ class ProjectInfo:
     schema_version: int
     created_at: str
     modified_at: str
+    document_mode: DocumentMode = "prose"
+
+
+# Screenplay element stream. Built at export time by core/screenplay.py from
+# the canonical Markdown and never stored; see docs/PIPELINE.md.
+ElementType = Literal[
+    "scene_heading",
+    "action",
+    "character",
+    "parenthetical",
+    "dialogue",
+    "transition",
+    "general",
+]
+
+
+@dataclass
+class Element:
+    type: ElementType
+    text: str
+    page_index: int
+    # Character cues only: the "(V.O.)" or "(CONT'D)" split off the name.
+    extension: str = ""
+    dual: bool = False
+    confidence: float = 1.0
+
+
+@dataclass
+class TitlePage:
+    fields: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class ClassifyReport:
+    counts: dict[str, int] = field(default_factory=dict)
+    # Indices into Screenplay.elements whose classification is uncertain.
+    low_confidence: list[int] = field(default_factory=list)
+    dropped_artifacts: list[str] = field(default_factory=list)
+    geometry_pages: int = 0
+    title_page_detected: bool = False
+    # True when the document uses a stage play's inline cues ("KEN. Line.")
+    # rather than a screenplay's cue column.
+    stage_play: bool = False
+    cast: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Screenplay:
+    elements: list[Element] = field(default_factory=list)
+    title: TitlePage = field(default_factory=TitlePage)
+    report: ClassifyReport = field(default_factory=ClassifyReport)
+
+
+ExportFormat = Literal["markdown", "docx", "fountain", "fdx", "screenplay_docx"]
 
 
 @dataclass
 class ExportOptions:
-    fmt: Literal["markdown", "docx"] = "markdown"
+    fmt: ExportFormat = "markdown"
     page_break: Literal["none", "comment", "rule"] = "none"
-    output_path: str = ""
     stitch: bool = True
 
 
 @dataclass
 class StitchLog:
+    """Export diagnostics. Named for its original job; it also carries the
+    screenplay classifier's report so the export result contract stays a
+    plain (out_path, StitchLog) tuple."""
+
     hyphen_joins: list[int] = field(default_factory=list)
     headers_dropped: list[str] = field(default_factory=list)
     tables_merged: list[int] = field(default_factory=list)
+    screenplay: ClassifyReport | None = None
