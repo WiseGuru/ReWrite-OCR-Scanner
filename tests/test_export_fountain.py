@@ -79,11 +79,17 @@ def test_page_break_is_its_own_block():
     assert "\n\n===\n\n" in out
 
 
+EM_DASH = chr(0x2014)
+EN_DASH = chr(0x2013)
+
+
 def test_no_unicode_dashes_are_emitted():
-    # Written as escapes so this test file itself passes the dash gate.
+    # Built with chr(), not written literally: scripts/check_dashes.py scans
+    # this file too and would fail on a literal, which is what it did the
+    # first time round.
     out = render()
-    assert "—" not in out
-    assert "–" not in out
+    assert EM_DASH not in out
+    assert EN_DASH not in out
 
 
 def test_notes_and_boneyard_are_defused():

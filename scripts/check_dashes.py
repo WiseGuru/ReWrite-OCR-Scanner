@@ -21,8 +21,14 @@ EXEMPT = {
 
 
 def main() -> int:
+    # Untracked-but-not-ignored files count too. Listing only tracked files
+    # meant every new file passed locally and failed in CI on the commit that
+    # first tracked it, which is the worst possible time to find out.
     files = subprocess.run(
-        ["git", "ls-files"], capture_output=True, text=True, check=True
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.splitlines()
     failures = []
     for path in files:
